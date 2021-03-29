@@ -2,6 +2,13 @@ import random
 from avatar.mapworld.maps import ADEMap
 from avatar.mapworld.mapworld import MapWorld
 
+DIRECTION_TO_WORD = {
+    "n": "north",
+    "e": "east",
+    "w": "west",
+    "s": "south"
+}
+
 
 class Game:
     """
@@ -65,7 +72,7 @@ class MapWorldGame(Game):
     def get_observations(self):
         return [self.get_observation(player) for player in self.get_players()]
 
-    def get_observation(self, player):
+    def __get_observation_internal(self, player):
         game_role = self.get_game_role_for_player(player)
         if game_role not in ["Avatar", "Director"]:
             print(f"Unknown game role: {game_role}")
@@ -80,3 +87,35 @@ class MapWorldGame(Game):
             "descriptors": descriptors,
             "directions": directions
         }
+
+    def get_observation(self, player):
+        game_obs = self.__get_observation_internal(player)
+        room_type = game_obs["descriptors"]["type"]
+        if game_obs["role"] == "Director":
+            directions = []  # there is no movement for the director
+        else:
+            directions = game_obs["directions"]
+        # Add situation statement
+        situtation = "You see a %s and you can go %s." % (
+            room_type.split("/")[-1], self.directions_to_sent(directions))
+        return {
+            "type": room_type,
+            "instance": game_obs["descriptors"]["instance"],
+            "situation": situtation,
+            "player": player,
+            "directions": directions
+        }
+
+    def direction_to_word(self, direction):
+        if direction in DIRECTION_TO_WORD:
+            return DIRECTION_TO_WORD[direction]
+        return direction
+
+    def directions_to_sent(self, directions):
+        if not directions:
+            return "nowhere"
+        n = len(directions)
+        if n == 1:
+            return self.direction_to_word(directions[0])
+        words = [self.direction_to_word(d) for d in directions]
+        return ", ".join(words[:-1]) + "or " + words[-1]

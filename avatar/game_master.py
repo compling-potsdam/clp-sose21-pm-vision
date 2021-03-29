@@ -8,7 +8,6 @@ MSG_AWAITING = "I will prepare the game for you now... this might take a while."
 MSG_GAME_START = "The game starts now... Have fun!"
 GAME_MASTER = "Game Master"
 
-
 def has_required_headers(headers):
     for h in REQ_HEADERS:
         if h not in headers:
@@ -71,13 +70,28 @@ class GameMaster(socketio.Namespace):
         for sid in sids:
             self.enter_room(sid, game_room)
         self.send({"from": GAME_MASTER, "msg": MSG_GAME_START}, room=game_room)
-        initial_observations = game.start_random_map()
+        # Send initial observations
+        initial_observations = game.start_random_map(4, 4, 8)
         for initial_observation in initial_observations:
             self.send_observation(initial_observation)
+        # Send initial mission statements
+        for sid in sids:
+            game_role = game.get_game_role_for_player(sid)
+            mission = "This is your goal: "
+            if game_role == "Director":
+                mission += "Try to navigate the avatar to your room. You can type anything that might help."
+            else:
+                mission += "Try to navigate to the director. The director will help you to lead you to his position."
+            self.send({"from": GAME_MASTER, "msg": mission}, room=sid)
 
-    def send_observation(self, obs):
-        obs["from"] = GAME_MASTER
-        self.emit("observation", obs, room=obs["player"])
+    def send_observation(self, game_obs):
+        data = dict()
+        data["from"] = GAME_MASTER
+        data["observation"] = game_obs
+        # Add situation statement
+        message = "This is your situation: %s" % game_obs["situation"]
+        data["msg"] = message
+        self.emit("observation", data, room=game_obs["player"])
 
     def on_connect(self, sid, env, auth):
         connection_headers = dict(env["headers_raw"])  # headers_raw is a tuple of tuples

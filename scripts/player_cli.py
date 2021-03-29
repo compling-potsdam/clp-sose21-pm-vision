@@ -12,9 +12,12 @@ def connect_and_play(host, port, game_role):
     @sio.event
     def observation(data):
         """
-        :param data: dict with "from" and "msg"
+        :param data: dict with "from", "msg" and "observation". The observation has "instance", "type" and "directions".
         """
-        ...
+        if not isinstance(data, dict):
+            print(data)  # should not happen
+        print(f"{data['from']}: {data['msg']}")
+        print(data["observation"])
 
     @sio.event
     def message(data):
