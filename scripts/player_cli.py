@@ -10,8 +10,20 @@ def connect_and_play(host, port, game_role):
     sio = socketio.Client()
 
     @sio.event
+    def observation(data):
+        """
+        :param data: dict with "from" and "msg"
+        """
+        ...
+
+    @sio.event
     def message(data):
-        print(data)
+        """
+        :param data: dict with "from" and "msg"
+        """
+        if not isinstance(data, dict):
+            print(data)  # should not happen
+        print(f"{data['from']}: {data['msg']}")
 
     custom_headers = {"X-Role": game_role, "X-Game-Mode": "demo"}
     sio.connect(f'http://{host}:{port}', headers=custom_headers)

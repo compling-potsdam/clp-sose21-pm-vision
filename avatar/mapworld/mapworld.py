@@ -6,6 +6,8 @@
 from transitions import Machine
 from IPython.display import display, Image
 
+LIST_DIRECTIONS = ["n", "s", "e", "w"]
+
 
 class MapWorld(object):
     """The MapWorld environment. State machine for one agent.
@@ -15,35 +17,44 @@ class MapWorld(object):
     in the dictionaries describing the nodes / states / rooms.
     """
 
-    def __init__(self, map_, node_descriptors):
+    def __init__(self, map_graph, node_descriptors):
         self.machine = Machine(model=self,
-                               states=[str(this_node['id']) for this_node in map_['nodes']],
-                               transitions=map_['transitions'],
+                               states=[str(this_node['id']) for this_node in map_graph['nodes']],
+                               transitions=map_graph['transitions'],
                                ignore_invalid_triggers=True,
-                               initial=map_['initial'])
-        self.nodes = map_['nodes']
+                               initial=map_graph['initial'])
+        """
+        Nodes is a list of dicts 
+            {'base_type': 'indoor', 
+             'type': 'v/veranda', 
+             'target': False, 
+             'instance': 'v/veranda/ADE_train_00019501.jpg', 
+             'id': (2, 1)}
+        """
+        self.nodes = map_graph['nodes']
         self.node_descriptors = node_descriptors
 
-    def _get_node(self, id_):
-        for this_node in self.nodes:
-            if str(this_node['id']) == id_:
-                return this_node
+    def __get_node(self, node_id):
+        for node in self.nodes:
+            if str(node['id']) == node_id:
+                return node
 
-    def describe_node(self, state):
-        out = {}
-        for descriptor in self.node_descriptors:
-            out[descriptor] = (self._get_node(state)[descriptor])
-        return (out, [t for t in self.machine.get_triggers(state)
-                      if t in 'n s e w'.split()])
+    def get_directions(self, node_id):
+        return [t for t in self.machine.get_triggers(node_id) if t in LIST_DIRECTIONS]
 
-    def try_transition(self, trigger):
-        if trigger not in self.machine.get_triggers(self.state):
-            return (None,
-                    [t for t in self.machine.get_triggers(self.state)
-                     if t in 'n s e w'.split()])
-        else:
-            self.trigger(trigger)
-            return self.describe_node(self.state)
+    def describe_node(self, node_id):
+        """
+        :return: tuple of (descriptors, directions)
+        """
+        node = self.__get_node(node_id)
+        descriptors = dict([(descriptor, node[descriptor]) for descriptor in self.node_descriptors])
+        return descriptors, self.get_directions(node_id)
+
+    def try_transition(self, direction):
+        if direction not in self.machine.get_triggers(self.state):
+            return None, self.get_directions(self.state)
+        self.trigger(direction)
+        return self.describe_node(self.state)
 
 
 class MapWorldWrapper(object):

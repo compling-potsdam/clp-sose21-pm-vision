@@ -1,9 +1,12 @@
 import socketio
 
+from avatar.game import MapWorldGame
+
 REQ_HEADERS = ["X-Game-Mode", "X-Role"]
-MSG_WELCOME = "Game Master: Welcome, I am your Game Master!"
-MSG_AWAITING = "Game Master: I will prepare the game for you now... this might take a while."
-MSG_GAME_START = "Game Master: The game starts now... Have fun!"
+MSG_WELCOME = "Welcome, I am your Game Master!"
+MSG_AWAITING = "I will prepare the game for you now... this might take a while."
+MSG_GAME_START = "The game starts now... Have fun!"
+GAME_MASTER = "Game Master"
 
 
 def has_required_headers(headers):
@@ -19,41 +22,6 @@ def get_game_mode(headers):
 
 def get_game_role(headers):
     return headers["X-Role"]
-
-
-class Game:
-    """
-        The state of a game.
-    """
-    COUNTER = 0
-
-    def __init__(self, sid, game_role):
-        self.game_id = Game.COUNTER + 1
-        self.players = dict()  # sid by game role
-        self.join(sid, game_role)
-
-    def join(self, sid, game_role):
-        if game_role in self.players:
-            raise Exception(f"Cannot join as {game_role} because already given.")
-        self.players[game_role] = sid
-
-    def get_player_by_game_role(self, game_role):
-        return self.players[game_role]
-
-    def get_game_role_for_player(self, sid):
-        for role, player in self.players.items():
-            if player == sid:
-                return role
-        return None
-
-    def has_player_with_role(self, game_role):
-        return game_role in self.players
-
-    def get_players(self):
-        return self.players.values()
-
-    def get_game_room(self):
-        return self.game_id
 
 
 class GameMaster(socketio.Namespace):
@@ -75,7 +43,7 @@ class GameMaster(socketio.Namespace):
         return None
 
     def start_demo_game(self, sid, game_role):
-        self.send(MSG_WELCOME, room=sid)
+        self.send({"from": GAME_MASTER, "msg": MSG_WELCOME}, room=sid)
         # We check for games to join
         game = self.get_awaiting_demo_game_missing(game_role)
         if game:
@@ -87,29 +55,35 @@ class GameMaster(socketio.Namespace):
             self.start_game(game)
         else:
             # We create a new awaiting game, so that another user can connect later as either director or avatar.
-            self.games[sid] = Game(sid, game_role)  # there should be at least one player per game
+            self.games[sid] = MapWorldGame(sid, game_role)  # there should be at least one player per game
             # We wait until someone elses joins
-            self.send(MSG_AWAITING, room=sid)
+            self.send({"from": GAME_MASTER, "msg": MSG_AWAITING}, room=sid)
 
     def start_standard_game(self, sid):
         # We start right away. An automatic agent is created for the users interaction.
-        self.send(MSG_GAME_START, room=sid)
+        self.send({"from": GAME_MASTER, "msg": MSG_GAME_START}, room=sid)
         ...
 
-    def start_game(self, game: Game):
+    def start_game(self, game: MapWorldGame):
         # Let player join the game room
         sids = game.get_players()
         game_room = game.get_game_room()
         for sid in sids:
             self.enter_room(sid, game_room)
-        self.send(MSG_GAME_START, room=game_room)
-        # TODO send initial stuff to players
-        ...
+        self.send({"from": GAME_MASTER, "msg": MSG_GAME_START}, room=game_room)
+        initial_observations = game.start_random_map()
+        for initial_observation in initial_observations:
+            self.send_observation(initial_observation)
+
+    def send_observation(self, obs):
+        obs["from"] = GAME_MASTER
+        self.emit("observation", obs, room=obs["player"])
 
     def on_connect(self, sid, env, auth):
         connection_headers = dict(env["headers_raw"])  # headers_raw is a tuple of tuples
         if not has_required_headers(connection_headers):
-            self.send("Error: Missing one or more required headers: %s" % REQ_HEADERS, room=sid)
+            self.send({"from": GAME_MASTER, "msg": "Error: Missing one or more required headers: %s" % REQ_HEADERS},
+                      room=sid)
             self.disconnect(sid)
         game_mode = get_game_mode(connection_headers)
         if game_mode == "demo":
@@ -132,7 +106,7 @@ class GameMaster(socketio.Namespace):
             game = self.games[sid]
             sids = game.get_players()
             for sid in sids:
-                self.send("Game Master: Game ended, because a player disconnected.", room=sid)
+                self.send({"from": GAME_MASTER, "msg": "Game ended, because a player disconnected."}, room=sid)
                 del self.games[sid]
 
     def on_command(self, sid, data):
@@ -147,4 +121,4 @@ class GameMaster(socketio.Namespace):
         game_room = game.get_game_room()
         # We prefix the message with the players game role
         game_role = game.get_game_role_for_player(sid)
-        self.send(f"{game_role}: {data}", room=game_room, skip_sid=sid)
+        self.send({"from": game_role, "msg": data}, room=game_room, skip_sid=sid)

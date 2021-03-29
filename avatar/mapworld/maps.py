@@ -57,9 +57,9 @@ class AbstractMap(object):
         self.n = n
         self.m = m
         self.n_rooms = n_rooms
-        self.G = self.make_graph(n, m, n_rooms)
+        self.G = self.__make_graph(n, m, n_rooms)
 
-    def make_graph(self, n, m, n_rooms):
+    def __make_graph(self, n, m, n_rooms):
         map_array = np.zeros((n, m))
         G = nx.Graph()
 
@@ -164,16 +164,23 @@ class ADEMap(AbstractMap):
         _cat_instances_str = _cat_instances_bytes.decode('utf-8')
         _cat_instances = json.loads(_cat_instances_str)
 
-    def __init__(self, *args):
-        if len(args) > 0:
-            n, m, n_rooms, target_type_distr = args
-            AbstractMap.__init__(self, n, m, n_rooms)
-            self.assign_types(target_type_distr)
-            self.assign_instances()
-        else:
-            pass
+    def __init__(self, n: int, m: int, n_rooms: int, types_to_repeat: list = None):
+        """
+        Arguments:
+          n: number of rows of grid for random walk (map height)
+          m: number of columns of grid for random walk (map width)
+          n_rooms: number of (connected) rooms in on the grid
+          types_to_repeat: a list of repetition counts for the room types. Each number affects a randomly
+            chosen room type, but each room type only once. Note: For large numbers of rooms, the types will
+            repeat anyway because there is only a restricted set of types.
+        """
+        AbstractMap.__init__(self, n, m, n_rooms)
+        if types_to_repeat is None:
+            types_to_repeat = []
+        self.__assign_types(types_to_repeat)
+        self.__assign_instances()
 
-    def assign_types(self, target_type_distr):
+    def __assign_types(self, target_type_distr):
         G = self.G
 
         outdoor = [this_node for this_node in G.nodes() if G.degree[this_node] == 1]
@@ -203,7 +210,7 @@ class ADEMap(AbstractMap):
             G.nodes[this_node]['target'] = False
         self.G = G
 
-    def assign_instances(self):
+    def __assign_instances(self):
         G = self.G
         already_sampled = []
         for this_node in G.nodes():
@@ -221,7 +228,7 @@ class ADEMap(AbstractMap):
                                          self.G.nodes[this_node]['type'],
                                          self.G.nodes[this_node]['instance']))
 
-    def _catname(self, category):
+    def __catname(self, category):
         parts = category.split('/')
         if parts[-1].endswith('door') or parts[-1] == 'interior':
             return parts[-2]
@@ -235,7 +242,7 @@ class ADEMap(AbstractMap):
         for this_node in G.nodes():
             x, y = np.array(this_node) + np.array((-0.2, 0.2))
             if nodes == 'types':
-                label = self._catname(G.nodes[this_node]['type'])
+                label = self.__catname(G.nodes[this_node]['type'])
             elif nodes == 'inst':
                 label = G.nodes[this_node]['instance']
             plt.text(x, y, label)
@@ -249,6 +256,7 @@ class ADEMap(AbstractMap):
         plt.axis('off')
 
     def to_json(self):
+        """This is NO JSON!"""
         return nx.json_graph.node_link_data(self.G)
 
     @classmethod
