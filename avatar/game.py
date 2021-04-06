@@ -16,11 +16,15 @@ class Game:
     """
     COUNTER = 0
 
-    def __init__(self, sid, game_role):
-        self.game_id = Game.COUNTER + 1
+    def __init__(self, game_room=None, sid=None, game_role=None):
         self.players = dict()  # sid by game role
-        self.join(sid, game_role)
         self.mapworld = None
+        if game_room:
+            self.room = game_room
+        else:
+            self.room = Game.COUNTER + 1
+        if sid:
+            self.join(sid, game_role)
 
     def join(self, sid, game_role):
         if game_role in self.players:
@@ -43,18 +47,24 @@ class Game:
         return self.players.values()
 
     def get_game_room(self):
-        return self.game_id
+        return self.room
 
 
 class MapWorldGame(Game):
     """
         The actual map worl environment. This is like the MapWorldWrapper.
-    """
 
-    def __init__(self, sid, game_role):
-        super().__init__(sid, game_role)
+        Multiple players can join, but there must be only one player with the 'Avatar' role!
+    """
+    ROLE_AVATAR = "Avatar"
+
+    def __init__(self, game_room, sid=None, game_role=None):
+        super().__init__(game_room, sid, game_role)
         self.mapworld = None
         self.target_node = None
+
+    def is_ready(self):
+        return self.has_player_with_role(MapWorldGame.ROLE_AVATAR) and len(self.get_players()) >= 2
 
     def start_random_map(self, height, width, rooms):
         ademap = ADEMap(height, width, rooms)
@@ -74,10 +84,7 @@ class MapWorldGame(Game):
 
     def __get_observation_internal(self, player):
         game_role = self.get_game_role_for_player(player)
-        if game_role not in ["Avatar", "Director"]:
-            print(f"Unknown game role: {game_role}")
-            return None
-        if game_role == "Avatar":
+        if game_role == MapWorldGame.ROLE_AVATAR:
             descriptors, directions = self.mapworld.describe_node(self.mapworld.state)
         else:  # Director
             descriptors, directions = self.mapworld.describe_node(self.target_node)
@@ -88,16 +95,24 @@ class MapWorldGame(Game):
             "directions": directions
         }
 
+    def get_mission(self, player):
+        game_role = self.get_game_role_for_player(player)
+        mission = "This is your goal: "
+        if game_role == MapWorldGame.ROLE_AVATAR:
+            mission += "Try to navigate to the director. The director will help you to lead you to his position."
+        else:
+            mission += "Try to navigate the avatar to your room. You can type anything that might help."
+        return mission
+
     def get_observation(self, player):
         game_obs = self.__get_observation_internal(player)
         room_type = game_obs["descriptors"]["type"]
-        if game_obs["role"] == "Director":
-            directions = []  # there is no movement for the director
-        else:
+        if game_obs["role"] == MapWorldGame.ROLE_AVATAR:
             directions = game_obs["directions"]
+        else:
+            directions = []  # there is no movement for the director
         # Add situation statement
-        situtation = "You see a %s and you can go %s." % (
-            room_type.split("/")[-1], self.directions_to_sent(directions))
+        situtation = "You see a %s and you can go %s." % (room_type.split("/")[1], self.directions_to_sent(directions))
         return {
             "type": room_type,
             "instance": game_obs["descriptors"]["instance"],

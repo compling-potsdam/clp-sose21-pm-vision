@@ -32,6 +32,8 @@ def get_game_role(headers):
 class GameMaster(socketio.Namespace):
     """
         Coordinates player between games.
+
+        We create game rooms on-the-fly.
     """
 
     def __init__(self):

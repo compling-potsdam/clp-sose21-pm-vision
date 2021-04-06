@@ -42,16 +42,16 @@ class SlurkApi:
     def get_tasks(self):
         """
         :return: [
-                    {'current_users': {},
-                      'label': 'Admin Room',
+                   { 'date_created': 1617714526,
+                      'date_modified': 1617714526,
+                      'id': 1,
                       'layout': 1,
-                      'name': 'admin_room',
-                      'read_only': False,
-                      'show_latency': True,
-                      'show_users': True,
-                      'static': True,
-                      'uri': '/room/admin_room',
-                      'users': {'1': 'Game Master'}}
+                      'name': 'avatar_game',
+                      'num_users': 3,
+                      'tokens': ['9b7f4039-e169-4016-bfa6-a9761b059391',
+                       '24bdaf98-b9a8-43ab-9084-a9653ca5939d',
+                       'fde65eac-a8b9-446b-a08c-be80125c7dbb'],
+                      'uri': '/task/1'}
                   ]
         """
         r = requests.get(f"{self.base_api}/tasks", headers=self.get_headers)
