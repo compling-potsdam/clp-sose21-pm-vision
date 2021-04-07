@@ -7,7 +7,7 @@ class MapWorldGameTestCase(unittest.TestCase):
 
     def test_start_random_map(self):
         game = MapWorldGame("player_1", "Director")
-        init_obs = game.start_random_map(4, 4, 5)
+        init_obs = game.reset(4, 4, 5)
         print(init_obs)
 
 

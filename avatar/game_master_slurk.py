@@ -42,6 +42,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         room_name = data["room"]
         # We prepare a game for each room we join
         self.games[room_name] = MapWorldGame(room_name)
+        # TODO if there are already users in the room, join them to the game
 
     def on_command(self, data):
         """
@@ -132,8 +133,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                                         game.room, user["id"])
 
     def __start_game(self, game: MapWorldGame):
-        # Let player join the game room
-        game.start_random_map(4, 4, 8)
+        game.reset(4, 4, 8)
         user_ids = game.get_players()
         for user_id in user_ids:
             self.__send_private_message("The game starts now... Have fun!", game.room, user_id)

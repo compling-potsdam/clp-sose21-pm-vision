@@ -74,7 +74,7 @@ class GameMaster(socketio.Namespace):
             self.enter_room(sid, game_room)
         self.send({"from": GAME_MASTER, "msg": MSG_GAME_START}, room=game_room)
         # Send initial observations
-        initial_observations = game.start_random_map(4, 4, 8)
+        initial_observations = game.reset(4, 4, 8)
         for initial_observation in initial_observations:
             self.send_observation(initial_observation)
         # Send initial mission statements

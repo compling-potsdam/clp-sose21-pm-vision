@@ -16,8 +16,8 @@ class Game:
     """
     COUNTER = 0
 
-    def __init__(self, game_room=None, sid=None, game_role=None):
-        self.players = dict()  # sid by game role
+    def __init__(self, game_room: str = None, sid: int = None, game_role: str = None):
+        self.players = dict()  # sid by game role / player name
         self.mapworld = None
         if game_room:
             self.room = game_room
@@ -26,21 +26,21 @@ class Game:
         if sid:
             self.join(sid, game_role)
 
-    def join(self, sid, game_role):
+    def join(self, sid: int, game_role: str):
         if game_role in self.players:
             raise Exception(f"Cannot join as {game_role} because already given.")
         self.players[game_role] = sid
 
-    def get_player_by_game_role(self, game_role):
+    def get_player_by_game_role(self, game_role: str):
         return self.players[game_role]
 
-    def get_game_role_for_player(self, sid):
+    def get_game_role_for_player(self, sid: int):
         for role, player in self.players.items():
             if player == sid:
                 return role
         return None
 
-    def has_player_with_role(self, game_role):
+    def has_player_with_role(self, game_role: str):
         return game_role in self.players
 
     def get_players(self):
@@ -58,7 +58,7 @@ class MapWorldGame(Game):
     """
     ROLE_AVATAR = "Avatar"
 
-    def __init__(self, game_room, sid=None, game_role=None):
+    def __init__(self, game_room: str, sid: int = None, game_role: str = None):
         super().__init__(game_room, sid, game_role)
         self.mapworld = None
         self.target_state = None
@@ -66,13 +66,25 @@ class MapWorldGame(Game):
     def is_ready(self):
         return self.has_player_with_role(MapWorldGame.ROLE_AVATAR) and len(self.get_players()) >= 2
 
-    def is_done(self):
-        return self.mapworld.state == self.target_state
+    def has_started(self):
+        return self.mapworld and self.target_state
 
-    def is_avatar(self, sid):
+    def is_done(self):
+        if self.has_started():
+            return self.mapworld.state == self.target_state
+        return False
+
+    def is_avatar(self, sid: int):
         return self.get_game_role_for_player(sid) == MapWorldGame.ROLE_AVATAR
 
-    def start_random_map(self, height, width, rooms):
+    def reset(self, height: int, width: int, rooms: int):
+        """
+            Start random map.
+
+        :param height: of the map
+        :param width: of the map
+        :param rooms: in the map
+        """
         ademap = ADEMap(height, width, rooms)
         self.mapworld = MapWorld(ademap.to_fsa_def(), ['instance', 'type'])
         self.target_state = self.choose_random_target_state()
@@ -88,7 +100,7 @@ class MapWorldGame(Game):
     def get_observations(self):
         return [self.get_observation(player) for player in self.get_players()]
 
-    def __get_observation_internal(self, player):
+    def __get_observation_internal(self, player: int):
         if self.is_avatar(player):
             descriptors, directions = self.mapworld.describe_node(self.mapworld.state)
         else:  # Director
@@ -107,7 +119,7 @@ class MapWorldGame(Game):
             mission += "Try to navigate the avatar to your room. You can type anything that might help."
         return mission
 
-    def get_observation(self, player):
+    def get_observation(self, player: int):
         game_obs = self.__get_observation_internal(player)
         room_type = game_obs["descriptors"]["type"]
         if self.is_avatar(player):
@@ -124,12 +136,12 @@ class MapWorldGame(Game):
             "directions": directions
         }
 
-    def direction_to_word(self, direction):
+    def direction_to_word(self, direction: str):
         if direction in DIRECTION_TO_WORD:
             return DIRECTION_TO_WORD[direction]
         return direction
 
-    def directions_to_sent(self, directions):
+    def directions_to_sent(self, directions: str):
         if not directions:
             return "nowhere"
         n = len(directions)
