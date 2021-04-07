@@ -124,7 +124,8 @@ def start_demo_game(room_name, task_name, host, port, token):
     print("Player token: ", slurk_api.create_token({
         "room": room_name,
         "task": task_id,
-        "message_text": True
+        "message_text": True,
+        "message_command": True
     }))
     print("Avatar token: ", slurk_api.create_token({
         "room": room_name,
