@@ -1,0 +1,35 @@
+{
+  "title": "Avatar Game",
+  "subtitle": "SoSe21 PM Vision",
+  "html": [
+    {
+      "layout-type": "div",
+      "id": "image-area",
+      "layout-content": [
+        {
+          "layout-type": "image",
+          "id": "current-image",
+          "src": "https://groups.csail.mit.edu/vision/datasets/ADE20K/assets/images/slider.png",
+          "width": 600,
+          "height": 400
+        }
+      ]
+    }
+  ],
+  "css": {
+    "header, footer": {
+      "background": "#115E91"
+    },
+    "#current-image": {
+      "display": "block",
+      "margin": "0 auto",
+      "padding-top": "100px"
+    }
+  },
+  "scripts": {
+    "incoming-text": "display-text",
+    "incoming-image": "display-image",
+    "submit-message": "send-message",
+    "print-history": "plain-history"
+  }
+}

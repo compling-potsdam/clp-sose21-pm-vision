@@ -17,6 +17,32 @@ class SlurkApi:
                              "Content-Type": "application/json",
                              "Accept": "application/json"}
 
+    def get_layouts(self):
+        """
+        :return: [
+                   {  'css': '',
+                      'date_created': 1617785207,
+                      'date_modified': 1617785207,
+                      'html': '',
+                      'id': 1,
+                      'name': 'default',
+                      'script': 'incoming_text = function(data) {...
+                      'subtitle': '',
+                      'title': '',
+                      'uri': '/layout/1'}
+                  ]
+        """
+        r = requests.get(f"{self.base_api}/layouts", headers=self.get_headers)
+        return json.loads(r.text)
+
+    def create_layout(self, payload):
+        r = requests.post(f"{self.base_api}/layout", headers=self.post_headers, data=json.dumps(payload))
+        return json.loads(r.text)
+
+    def update_layout(self, payload, layout_id):
+        r = requests.put(f"{self.base_api}/layout/%s" % layout_id, headers=self.post_headers, data=json.dumps(payload))
+        return json.loads(r.text)
+
     def get_rooms(self):
         """
         :return: [
@@ -69,10 +95,11 @@ class SlurkApi:
 @click.command()
 @click.option("--room_name", default="avatar_room")
 @click.option("--task_name", default="avatar_game")
+@click.option("--layout_name", default="avatar_layout")
 @click.option("--host", default="127.0.0.1")
 @click.option("--port", default="5000")
 @click.option("--token", default="00000000-0000-0000-0000-000000000000")
-def start_demo_game(room_name, task_name, host, port, token):
+def start_demo_game(room_name, task_name, layout_name, host, port, token):
     slurk_api = SlurkApi("Game Setup", token, host, port)
 
     # Use the REST API to create a game task
@@ -92,6 +119,30 @@ def start_demo_game(room_name, task_name, host, port, token):
         task_id = new_task["id"]
         print(new_task)
 
+    # Use the REST API to create a game layout
+    layout_id = None
+    layout_exists = False
+    layouts = slurk_api.get_layouts()
+    for layout in layouts:
+        if layout["name"] == layout_name:
+            layout_exists = True
+            layout_id = layout["id"]
+            print(f"Layout {layout_name} already exists")
+            break
+
+    with open("resources/game_layout.json") as f:
+        game_layout = json.load(f)
+
+    if not layout_exists:
+        print(f"Create game layout '{layout_name}'.")
+        new_layout = slurk_api.create_layout(game_layout)
+        layout_id = new_layout["id"]
+
+    # We update the layout. By default, the title is the name. But we want a different name.
+    game_layout["name"] = layout_name
+    print(f"Update layout {layout_name}")
+    slurk_api.update_layout(game_layout, layout_id)
+
     # Use the REST API to create a game room
     room_exists = False
     rooms = slurk_api.get_rooms()
@@ -105,7 +156,8 @@ def start_demo_game(room_name, task_name, host, port, token):
         print(f"Create game room '{room_name}'.")
         print(slurk_api.create_room({
             "name": room_name,
-            "label": "Avatar Game Room"
+            "label": "Avatar Game Room",
+            "layout": layout_id
         }))
 
         # Use the Event API to publish room_created event
