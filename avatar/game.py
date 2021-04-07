@@ -46,6 +46,9 @@ class Game:
     def get_players(self):
         return self.players.values()
 
+    def has_player(self, sid: int):
+        return sid in self.get_players()
+
     def get_game_room(self):
         return self.room
 
@@ -89,9 +92,18 @@ class MapWorldGame(Game):
             "directions": directions
         }
         """
+        if not self.has_started():
+            return None
+        descriptors, directions = None, []
+        # Guard mapworld transitions by player role
         if self.is_avatar(player):
-            # TODO perform action
-            ...
+            descriptors, directions = self.mapworld.try_transition(action)
+        # Player is not avatar or avatar cannot move there
+        if descriptors is None:
+            return {"situation": "This is not possible. You can go %s." % (self.directions_to_sent(directions)),
+                    "directions": directions,
+                    "player": player}
+        # Avatar movement was successful
         return self.get_observation(player)
 
     def reset(self, height: int, width: int, rooms: int):
@@ -143,12 +155,10 @@ class MapWorldGame(Game):
             directions = game_obs["directions"]
         else:
             directions = []  # there is no movement for the director
-        # Add situation statement
-        situtation = "You see a %s and you can go %s." % (room_type.split("/")[1], self.directions_to_sent(directions))
         return {
             "type": room_type,
             "instance": game_obs["descriptors"]["instance"],
-            "situation": situtation,
+            "situation": "This is what you see. You can go %s." % (self.directions_to_sent(directions)),
             "player": player,
             "directions": directions
         }
@@ -165,4 +175,4 @@ class MapWorldGame(Game):
         if n == 1:
             return self.direction_to_word(directions[0])
         words = [self.direction_to_word(d) for d in directions]
-        return ", ".join(words[:-1]) + "or " + words[-1]
+        return ", ".join(words[:-1]) + " or " + words[-1]

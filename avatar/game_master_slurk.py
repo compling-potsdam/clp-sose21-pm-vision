@@ -16,6 +16,8 @@ class GameMaster(socketIO_client.BaseNamespace):
         Coordinates player between games.
 
         The game rooms are already created with the setup script. We only join the rooms.
+
+        The players might be already in the game room or join later.
     """
 
     NAME = "Game Master"
@@ -25,6 +27,9 @@ class GameMaster(socketIO_client.BaseNamespace):
         self.id = None
         self.base_image_url = None
         self.games = {}  # game by room_name
+        self.map_width = 4
+        self.map_height = 4
+        self.map_rooms = 8
         self.emit("ready")  # invokes on_joined_room for the token room so we can get the user.id
 
     def set_base_image_url(self, base_image_url: str):
@@ -42,7 +47,6 @@ class GameMaster(socketIO_client.BaseNamespace):
         room_name = data["room"]
         # We prepare a game for each room we join
         self.games[room_name] = MapWorldGame(room_name)
-        # TODO if there are already users in the room, join them to the game
 
     def on_command(self, data: dict):
         """
@@ -59,18 +63,27 @@ class GameMaster(socketIO_client.BaseNamespace):
         """
         game: MapWorldGame = self.games[data["room"]]
         command = data["command"]
-        user_id = data["user"]["id"]
-        if game.is_avatar(user_id):
-            self.__step_game(command, data["user"], game)
+        user = data["user"]
+
+        # This might be useful, when the game master re-joins the room.
+        # Then the players are in the game room before the game master.
+        # The players are not in the game then, but must join again.
+        if command == "rejoin":
+            self.__join_game(user, game)
+            return
+
+        if game.is_avatar(user["id"]):
+            self.__step_game(command, user, game)
         else:
-            self.__control_game(command, data["user"], game)
+            self.__control_game(command, user, game)
 
     def __step_game(self, command: str, user: dict, game: MapWorldGame):
         """
             Actions performed by the avatar.
         """
         observation = game.step(user["id"], command)
-        self.__send_observation(observation, game.room, user["id"])
+        if observation:
+            self.__send_observation(observation, game.room, user["id"])
 
     def __control_game(self, command: str, user: dict, game: MapWorldGame):
         """
@@ -80,16 +93,39 @@ class GameMaster(socketIO_client.BaseNamespace):
             self.__end_game_if_possible(user, game)
         elif command == "restart":
             self.__start_game_if_possible(user, game)
+        elif command.startswith("set_map"):
+            try:
+                self.__set_map(command)
+                self.__send_private_message(
+                    "Set map to %s,%s,%s" % (self.map_width, self.map_height, self.map_rooms),
+                    game.room, user["id"])
+            except Exception as e:  # noqa
+                self.__send_private_message(
+                    "Wrong command '%s'. Should be like '/set_map:<width>,<height>,<rooms>'" % command,
+                    game.room, user["id"])
         else:
             self.__send_private_message(
-                "You cannot use the command '/%s'. You may use '/done' or '/restart'." % command,
+                "You cannot use the command '/%s'. You may use '/set_map', '/done', '/restart' or '/rejoin'." % command,
                 game.room, user["id"])
+
+    def __set_map(self, setting: str):
+        """
+        :param setting: str like "set_map:<width>,<height>,<rooms>"
+        :exception Exception when format is wrong
+        """
+        parameters = setting.split(":")[1]
+        parameters = [int(p.strip()) for p in parameters.split(",")]
+        self.map_width = parameters[0]
+        self.map_height = parameters[1]
+        self.map_rooms = parameters[2]
 
     def on_status(self, data: dict):
         """
         Send to room participants if a user joins or leaves the room.
 
-        We expect that the game master is the first person in the game room.
+        We expect that the game master is the first person in the game room. Otherwise players have to use /rejoin.
+
+        The mission statement is only send for game join events (so thats not repeating on restarts).
 
         :param data: {
             'type': 'join',
@@ -106,13 +142,20 @@ class GameMaster(socketIO_client.BaseNamespace):
         room_name = data["room"]
         if user["id"] == self.id:
             return
-        game: MapWorldGame = self.games[room_name]
+        game = self.games[room_name]
         if data["type"] == "join":
-            game.join(user["id"], user["name"])
-            self.__send_private_message(f"Welcome, {user['name']}, I am your {GameMaster.NAME}!", game.room, user["id"])
-            self.__start_game_if_possible(user, game)
+            self.__join_game(user, game)
         if data["type"] == "leave":
             self.__pause_game(user, game)
+
+    def __join_game(self, user: dict, game: MapWorldGame):
+        if game.has_player(user["id"]):
+            self.__send_private_message(f"You already joined the game!", game.room, user["id"])
+            return
+        game.join(user["id"], user["name"])
+        self.__send_private_message(f"Welcome, {user['name']}, I am your {GameMaster.NAME}!", game.room, user["id"])
+        self.__send_private_message(game.get_mission(user["id"]), game.room, user["id"])
+        self.__start_game_if_possible(user, game)
 
     def __pause_game(self, user: dict, game: MapWorldGame):
         self.__send_room_message(f"{user['name']} left the game.", game.room)
@@ -133,15 +176,13 @@ class GameMaster(socketIO_client.BaseNamespace):
                                         game.room, user["id"])
 
     def __start_game(self, game: MapWorldGame):
-        game.reset(4, 4, 8)
+        game.reset(self.map_width, self.map_height, self.map_rooms)
         user_ids = game.get_players()
         for user_id in user_ids:
             self.__send_private_message("The game starts now... Have fun!", game.room, user_id)
             # Send initial observations
             observation = game.get_observation(user_id)
             self.__send_observation(observation, game.room, user_id)
-            # Send initial mission statements
-            self.__send_private_message(game.get_mission(user_id), game.room, user_id)
 
     def __send_observation(self, observation: dict, room_name: str, user_id: int):
         if "instance" in observation:
