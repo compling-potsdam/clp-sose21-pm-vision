@@ -45,7 +45,49 @@ class GameMaster(socketIO_client.BaseNamespace):
         if not self.id:
             self.id = data['user']
         room_name = data["room"]
+        # We prepare a game for each room we join
         self.games[room_name] = MapWorldGame(room_name)
+
+    def on_command(self, data):
+        """
+        :param data: {
+                'command': payload['command'],
+                'user': {
+                    'id': current_user_id,
+                    'name': current_user.name,
+                },
+                'room': room.name
+                'timestamp': timegm(datetime.now().utctimetuple()),
+                'private': False (commands cannot be private when coming from the standard layout)
+            }
+        """
+        game = self.games[data["room"]]
+        command = data["command"]
+        user_id = data["user"]["id"]
+        if game.is_avatar(user_id):
+            self.__step_game(command, data["user"], game)
+        else:
+            self.__control_game(command, data["user"], game)
+
+    def __step_game(self, command, user, game):
+        """
+            Actions performed by the avatar.
+        """
+        game.step(command)
+        ...
+
+    def __control_game(self, command, user, game):
+        """
+            Actions performed by the player.
+        """
+        if command == "done":
+            self.__end_game_if_possible(user, game)
+        elif command == "restart":
+            self.__start_game_if_possible(user, game)
+        else:
+            self.__send_private_message(
+                "I don't know the command '/%s'. Commands I know are [/done, /restart]." % command,
+                game.room, user["id"])
 
     def on_status(self, data):
         """
@@ -70,16 +112,24 @@ class GameMaster(socketIO_client.BaseNamespace):
             return
         game = self.games[room_name]
         if data["type"] == "join":
+            game.join(user["id"], user["name"])
             self.__send_private_message(f"Welcome, {user['name']}, I am your {GAME_MASTER}!", game.room, user["id"])
             self.__start_game_if_possible(user, game)
         if data["type"] == "leave":
             self.__pause_game(user, game)
 
     def __pause_game(self, user, game):
-        ...
+        self.__send_room_message(f"{user['name']} left the game.", game.room)
+
+    def __end_game_if_possible(self, user, game: MapWorldGame):
+        if game.is_done():
+            self.__send_private_message(
+                "Congrats! You are correct. The avatar has reached your room. Type /restart if you want to play again.",
+                game.room, user["id"])
+        else:
+            self.__send_private_message("Nope, the avatar has not reached your room yet.", game.room, user["id"])
 
     def __start_game_if_possible(self, user, game):
-        game.join(user["id"], user["name"])
         if game.is_ready():
             self.__start_game(game)
         else:
@@ -98,6 +148,9 @@ class GameMaster(socketIO_client.BaseNamespace):
             self.__send_private_image(observation["instance"], game.room, user_id)
             # Send initial mission statements
             self.__send_private_message(game.get_mission(user_id), game.room, user_id)
+
+    def __send_room_message(self, message, room_name):
+        self.emit("text", {"msg": message, "room": room_name}, check_error_callback)
 
     def __send_private_message(self, message, room_name, user_id):
         self.emit("text", {"msg": message, "room": room_name, "receiver_id": user_id}, check_error_callback)

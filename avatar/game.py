@@ -61,18 +61,21 @@ class MapWorldGame(Game):
     def __init__(self, game_room, sid=None, game_role=None):
         super().__init__(game_room, sid, game_role)
         self.mapworld = None
-        self.target_node = None
+        self.target_state = None
 
     def is_ready(self):
         return self.has_player_with_role(MapWorldGame.ROLE_AVATAR) and len(self.get_players()) >= 2
 
+    def is_done(self):
+        return self.mapworld.state == self.target_state
+
     def start_random_map(self, height, width, rooms):
         ademap = ADEMap(height, width, rooms)
         self.mapworld = MapWorld(ademap.to_fsa_def(), ['instance', 'type'])
-        self.target_node = self.choose_random_target_node()
+        self.target_state = self.choose_random_target_state()
         return self.get_observations()
 
-    def choose_random_target_node(self):
+    def choose_random_target_state(self):
         # The target state should not be the initial avatar state
         avatar_state = self.mapworld.state
         other_states = [str(node["id"]) for node in self.mapworld.nodes if str(node["id"]) != avatar_state]
@@ -87,7 +90,7 @@ class MapWorldGame(Game):
         if game_role == MapWorldGame.ROLE_AVATAR:
             descriptors, directions = self.mapworld.describe_node(self.mapworld.state)
         else:  # Director
-            descriptors, directions = self.mapworld.describe_node(self.target_node)
+            descriptors, directions = self.mapworld.describe_node(self.target_state)
         return {
             "player": player,
             "role": game_role,
