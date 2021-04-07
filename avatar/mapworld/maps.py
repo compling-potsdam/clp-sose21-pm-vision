@@ -157,12 +157,10 @@ class ADEMap(AbstractMap):
 
     # not sure the following is the python way to do this... this is a
     # class attribute, so at least this is only done once...
-    if not os.path.isfile('ade_cat_instances.json.gz'):
-        raise FileNotFoundError('"ade_cat_instance.json.gz" not found. Run make_and_write_instance_list.py?')
-    with gzip.open('ade_cat_instances.json.gz', 'rb') as f:
-        _cat_instances_bytes = f.read()
-        _cat_instances_str = _cat_instances_bytes.decode('utf-8')
-        _cat_instances = json.loads(_cat_instances_str)
+    if not os.path.isfile('resources/ade_cat_instances.json'):
+        raise FileNotFoundError('"ade_cat_instance.json" not found. Run make_and_write_instance_list.py?')
+    with open('resources/ade_cat_instances.json') as f:
+        _cat_instances = json.load(f)
 
     def __init__(self, n: int, m: int, n_rooms: int, types_to_repeat: list = None):
         """

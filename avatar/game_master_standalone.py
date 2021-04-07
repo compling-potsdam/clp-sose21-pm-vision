@@ -1,8 +1,6 @@
 """
     Standalone server for the game master
 """
-import click
-import eventlet
 import socketio
 
 from avatar.game import MapWorldGame
@@ -141,18 +139,3 @@ class GameMaster(socketio.Namespace):
         # We prefix the message with the players game role
         game_role = game.get_game_role_for_player(sid)
         self.send({"from": game_role, "msg": data}, room=game_room, skip_sid=sid)
-
-
-@click.command()
-@click.option("--host", default="localhost")
-@click.option("--port", default="5555", type=int)
-def start_and_wait(host, port):
-    sio = socketio.Server()
-    app = socketio.WSGIApp(sio)
-
-    sio.register_namespace(GameMaster())  # default namespace handler
-    eventlet.wsgi.server(eventlet.listen((host, port)), app)
-
-
-if __name__ == '__main__':
-    start_and_wait()

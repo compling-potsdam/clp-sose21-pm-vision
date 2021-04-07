@@ -1,16 +1,9 @@
 """
     Slurk client for the game master
 """
-import sys
-
-sys.path.append("F:\\Development\\git\\clp-sose21-pm-vision")
-print(sys.path)
-import click
 import socketIO_client
 
 from avatar.game import MapWorldGame
-
-GAME_MASTER = "Game Master"
 
 
 def check_error_callback(success, error=None):
@@ -24,6 +17,8 @@ class GameMaster(socketIO_client.BaseNamespace):
 
         The game rooms are already created with the setup script. We only join the rooms.
     """
+
+    NAME = "Game Master"
 
     def __init__(self, io, path):
         super().__init__(io, path)
@@ -61,7 +56,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                 'private': False (commands cannot be private when coming from the standard layout)
             }
         """
-        game = self.games[data["room"]]
+        game: MapWorldGame = self.games[data["room"]]
         command = data["command"]
         user_id = data["user"]["id"]
         if game.is_avatar(user_id):
@@ -69,14 +64,14 @@ class GameMaster(socketIO_client.BaseNamespace):
         else:
             self.__control_game(command, data["user"], game)
 
-    def __step_game(self, command, user, game):
+    def __step_game(self, command, user, game: MapWorldGame):
         """
             Actions performed by the avatar.
         """
         game.step(command)
         ...
 
-    def __control_game(self, command, user, game):
+    def __control_game(self, command, user, game: MapWorldGame):
         """
             Actions performed by the player.
         """
@@ -110,15 +105,15 @@ class GameMaster(socketIO_client.BaseNamespace):
         room_name = data["room"]
         if user["id"] == self.id:
             return
-        game = self.games[room_name]
+        game: MapWorldGame = self.games[room_name]
         if data["type"] == "join":
             game.join(user["id"], user["name"])
-            self.__send_private_message(f"Welcome, {user['name']}, I am your {GAME_MASTER}!", game.room, user["id"])
+            self.__send_private_message(f"Welcome, {user['name']}, I am your {GameMaster.NAME}!", game.room, user["id"])
             self.__start_game_if_possible(user, game)
         if data["type"] == "leave":
             self.__pause_game(user, game)
 
-    def __pause_game(self, user, game):
+    def __pause_game(self, user, game: MapWorldGame):
         self.__send_room_message(f"{user['name']} left the game.", game.room)
 
     def __end_game_if_possible(self, user, game: MapWorldGame):
@@ -159,20 +154,3 @@ class GameMaster(socketIO_client.BaseNamespace):
         image_url = f"{self.base_image_url}/{image_url}"
         print(image_url)
         self.emit("image", {"url": image_url, "room": room_name, "receiver_id": user_id}, check_error_callback)
-
-
-@click.command()
-@click.option("--token")
-@click.option("--slurk_host", default="127.0.0.1")
-@click.option("--slurk_port", default="5000", type=int)
-@click.option("--image_server_host", default="localhost")
-@click.option("--image_server_port", default="8000", type=int)
-def start_and_wait(token, slurk_host, slurk_port, image_server_host, image_server_port):
-    custom_headers = {"Authorization": token, "Name": GAME_MASTER}
-    sio = socketIO_client.SocketIO(f'http://{slurk_host}', slurk_port, headers=custom_headers, Namespace=GameMaster)
-    sio.get_namespace().set_base_image_url(f'http://{image_server_host}:{image_server_port}')
-    sio.wait()
-
-
-if __name__ == '__main__':
-    start_and_wait()

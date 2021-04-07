@@ -69,6 +69,9 @@ class MapWorldGame(Game):
     def is_done(self):
         return self.mapworld.state == self.target_state
 
+    def is_avatar(self, sid):
+        return self.get_game_role_for_player(sid) == MapWorldGame.ROLE_AVATAR
+
     def start_random_map(self, height, width, rooms):
         ademap = ADEMap(height, width, rooms)
         self.mapworld = MapWorld(ademap.to_fsa_def(), ['instance', 'type'])
@@ -86,22 +89,19 @@ class MapWorldGame(Game):
         return [self.get_observation(player) for player in self.get_players()]
 
     def __get_observation_internal(self, player):
-        game_role = self.get_game_role_for_player(player)
-        if game_role == MapWorldGame.ROLE_AVATAR:
+        if self.is_avatar(player):
             descriptors, directions = self.mapworld.describe_node(self.mapworld.state)
         else:  # Director
             descriptors, directions = self.mapworld.describe_node(self.target_state)
         return {
             "player": player,
-            "role": game_role,
             "descriptors": descriptors,
             "directions": directions
         }
 
     def get_mission(self, player):
-        game_role = self.get_game_role_for_player(player)
         mission = "This is your goal: "
-        if game_role == MapWorldGame.ROLE_AVATAR:
+        if self.is_avatar(player):
             mission += "Try to navigate to the director. The director will help you to lead you to his position."
         else:
             mission += "Try to navigate the avatar to your room. You can type anything that might help."
@@ -110,7 +110,7 @@ class MapWorldGame(Game):
     def get_observation(self, player):
         game_obs = self.__get_observation_internal(player)
         room_type = game_obs["descriptors"]["type"]
-        if game_obs["role"] == MapWorldGame.ROLE_AVATAR:
+        if self.is_avatar(player):
             directions = game_obs["directions"]
         else:
             directions = []  # there is no movement for the director
