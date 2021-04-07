@@ -77,6 +77,23 @@ class MapWorldGame(Game):
     def is_avatar(self, sid: int):
         return self.get_game_role_for_player(sid) == MapWorldGame.ROLE_AVATAR
 
+    def step(self, player: int, action: str):
+        """
+        Performs the action, when player is Avatar. Otherwise, we just return the current observation.
+
+        :return: {
+            "type": room_type,
+            "instance": game_obs["descriptors"]["instance"],
+            "situation": situation,
+            "player": player,
+            "directions": directions
+        }
+        """
+        if self.is_avatar(player):
+            # TODO perform action
+            ...
+        return self.get_observation(player)
+
     def reset(self, height: int, width: int, rooms: int):
         """
             Start random map.
@@ -111,7 +128,7 @@ class MapWorldGame(Game):
             "directions": directions
         }
 
-    def get_mission(self, player):
+    def get_mission(self, player: int):
         mission = "This is your goal: "
         if self.is_avatar(player):
             mission += "Try to navigate to the director. The director will help you to lead you to his position."
