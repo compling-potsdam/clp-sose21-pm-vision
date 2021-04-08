@@ -199,4 +199,10 @@ class GameMaster(socketIO_client.BaseNamespace):
     def __send_private_image(self, image_url: str, room_name: str, user_id: int):
         image_url = f"{self.base_image_url}/{image_url}"
         print(image_url)
-        self.emit("image", {"url": image_url, "room": room_name, "receiver_id": user_id}, check_error_callback)
+        self.emit("set_attribute",
+                  {"id": "current-image",
+                   "attribute": "src",
+                   "value": image_url,
+                   "room": room_name,
+                   "receiver_id": user_id},
+                  check_error_callback)

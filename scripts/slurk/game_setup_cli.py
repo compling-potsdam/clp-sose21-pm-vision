@@ -161,7 +161,7 @@ def start_demo_game(room_name, task_name, layout_name, slurk_host, slurk_port, t
         }))
 
         # Use the Event API to publish room_created event
-        sio = socketIO_client.SocketIO(f'http://{host}', port, headers={"Name": "Game Setup"})
+        sio = socketIO_client.SocketIO(f'http://{slurk_host}', slurk_port, headers={"Name": "Game Setup"})
         sio.emit("room_created", {"room": room_name, "task": task_id})
         sio.disconnect()
 
