@@ -96,11 +96,11 @@ class SlurkApi:
 @click.option("--room_name", default="avatar_room")
 @click.option("--task_name", default="avatar_game")
 @click.option("--layout_name", default="avatar_layout")
-@click.option("--host", default="127.0.0.1")
-@click.option("--port", default="5000")
+@click.option("--slurk_host", default="127.0.0.1")
+@click.option("--slurk_port", default="5000")
 @click.option("--token", default="00000000-0000-0000-0000-000000000000")
-def start_demo_game(room_name, task_name, layout_name, host, port, token):
-    slurk_api = SlurkApi("Game Setup", token, host, port)
+def start_demo_game(room_name, task_name, layout_name, slurk_host, slurk_port, token):
+    slurk_api = SlurkApi("Game Setup", token, slurk_host, slurk_port)
 
     # Use the REST API to create a game task
     task_id = None
