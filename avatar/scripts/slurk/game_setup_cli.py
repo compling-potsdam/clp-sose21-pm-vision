@@ -6,6 +6,8 @@ import requests
 import json
 import socketIO_client
 
+from avatar import load_project_resource
+
 
 def build_url(host, context=None, port=None, base_url=None):
     uri = f"http://{host}"
@@ -159,8 +161,7 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
             print(f"Layout {layout_name} already exists")
             break
 
-    with open("resources/game_layout.json") as f:
-        game_layout = json.load(f)
+    game_layout = load_project_resource("avatar/resources/game_layout.json")
 
     if not layout_exists:
         print(f"Create game layout '{layout_name}'.")

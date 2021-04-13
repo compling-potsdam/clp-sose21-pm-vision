@@ -26,6 +26,9 @@ import json
 import gzip
 import os
 import matplotlib.pyplot as plt
+import zipfile
+
+from avatar import load_project_resource
 
 
 class AbstractMap(object):
@@ -155,13 +158,7 @@ class ADEMap(AbstractMap):
                      'c/convenience_store/outdoor', 'b/bistro/outdoor',
                      'i/inn/outdoor', 'l/library/outdoor']
 
-    # not sure the following is the python way to do this... this is a
-    # class attribute, so at least this is only done once...
-    if not os.path.isfile('avatar/resources/ade_cat_instances.json'):
-        raise FileNotFoundError("Could not find 'avatar/resources/ade_cat_instances.json'. "
-                                "Make sure you run the script from the correct directory.")
-    with open('avatar/resources/ade_cat_instances.json') as f:
-        _cat_instances = json.load(f)
+    _cat_instances = load_project_resource("avatar/resources/ade_cat_instances.json")
 
     def __init__(self, n: int, m: int, n_rooms: int, types_to_repeat: list = None):
         """
