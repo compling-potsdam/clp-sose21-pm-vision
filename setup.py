@@ -16,6 +16,12 @@ setup(
     description='Avatar Game Master for Slurk',
     # long_description=long_description,
 
+    install_requires=[
+        "socketio-client==0.7.2",
+        "click==7.1.2",
+        "networkx==2.5"
+    ],
+
     # The project's main homepage.
     url='',
 

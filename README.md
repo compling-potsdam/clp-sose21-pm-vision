@@ -46,3 +46,18 @@ First, do everything as in *Run everything on localhost: Prepare servers and dat
 1. Run a different (private-mode) browser and go to `<slurk-hash>.ngrok.io` and login as `Avatar` using the avatar
    token. If the avatar is a bot, then the bot will have to use the token, when the connection is about to be
    established, just like with the game master.
+
+## Installation
+
+Run `update.sh` to install the project on a machine. This will install the python project as an egg
+into `$HOME/.local/lib/pythonX.Y/site-packages`. Add the install directory to your python path to make the app
+available:
+
+`export PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/pythonX.Y/site-packages`
+
+Notice: Use the python version X.Y of your choice. Preferebly add this export also to your `.bashrc`.
+
+You can also simply perform `python setup.py install`. This will install the app into the currently activate python
+environment.
+
+
