@@ -7,10 +7,21 @@ import json
 import socketIO_client
 
 
+def build_url(host, context=None, port=None, base_url=None):
+    uri = f"http://{host}"
+    if context:
+        uri = uri + f"/{context}"
+    if port:
+        uri = uri + f":{port}"
+    if base_url:
+        uri = uri + f"{base_url}"
+    return uri
+
+
 class SlurkApi:
 
-    def __init__(self, bot_name, token, host="localhost", port="5000", base_url="/api/v2"):
-        self.base_api = f"http://{host}:{port}{base_url}"
+    def __init__(self, bot_name, token, host="localhost", port="5000", context=None, base_url="/api/v2"):
+        self.base_api = build_url(host, context, port, base_url)
         self.get_headers = {"Authorization": f"Token {token}", "Name": bot_name}
         self.post_headers = {"Authorization": f"Token {token}",
                              "Name": bot_name,
@@ -98,9 +109,16 @@ class SlurkApi:
 @click.option("--layout_name", default="avatar_layout")
 @click.option("--slurk_host", default="127.0.0.1")
 @click.option("--slurk_port", default="5000")
+@click.option("--slurk_context", default=None)
 @click.option("--token", default="00000000-0000-0000-0000-000000000000")
-def start_demo_game(room_name, task_name, layout_name, slurk_host, slurk_port, token):
-    slurk_api = SlurkApi("Game Setup", token, slurk_host, slurk_port)
+def start_demo_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_context, token):
+    if slurk_port == "None":
+        slurk_port = None
+
+    if slurk_port:
+        slurk_port = int(slurk_port)
+
+    slurk_api = SlurkApi("Game Setup", token, slurk_host, slurk_port, slurk_context)
 
     # Use the REST API to create a game task
     task_id = None
@@ -161,7 +179,8 @@ def start_demo_game(room_name, task_name, layout_name, slurk_host, slurk_port, t
         }))
 
         # Use the Event API to publish room_created event
-        sio = socketIO_client.SocketIO(f'http://{slurk_host}', slurk_port, headers={"Name": "Game Setup"})
+        socket_url = build_url(slurk_host, slurk_context)
+        sio = socketIO_client.SocketIO(socket_url, slurk_port, headers={"Name": "Game Setup"})
         sio.emit("room_created", {"room": room_name, "task": task_id})
         sio.disconnect()
 
