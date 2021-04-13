@@ -25,15 +25,26 @@ def build_url(host, context=None, port=None, base_url=None):
 
 
 @click.command()
-@click.option("--token", required=True)
-@click.option("--slurk_host", default="127.0.0.1")
-@click.option("--slurk_context", default=None)
-@click.option("--slurk_port", default="5000")
-@click.option("--image_server_host", default="localhost")
-@click.option("--image_server_context", default=None)
-@click.option("--image_server_port", default="8000")
+@click.option("--token", show_default=True, required=True)
+@click.option("--slurk_host", default="127.0.0.1", show_default=True, required=True)
+@click.option("--slurk_context", default=None, show_default=True)
+@click.option("--slurk_port", default="5000", show_default=True, required=True)
+@click.option("--image_server_host", default="localhost", show_default=True, required=True)
+@click.option("--image_server_context", default=None, show_default=True)
+@click.option("--image_server_port", default="8000", show_default=True, required=True)
 def start_and_wait(token, slurk_host, slurk_context, slurk_port,
                    image_server_host, image_server_context, image_server_port):
+    """Start the game master bot.
+
+        \b
+        TOKEN the master token for the game master bot. You get this afer game-setup. The bot will join the token room.
+        SLURK_HOST domain of the the slurk app
+        SLURK_PORT port of the slurk app
+        SLURK_CONTEXT (optional) sub-path of to the slurk host
+        IMAGE_SERVER_HOST domain of the image server
+        IMAGE_SERVER_PORT port of the image server
+        IMAGE_SERVER_CONTEXT (optional) sub-path to the image server
+    """
     if slurk_port == "None":
         slurk_port = None
 

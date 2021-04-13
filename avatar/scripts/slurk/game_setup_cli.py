@@ -104,14 +104,25 @@ class SlurkApi:
 
 
 @click.command()
-@click.option("--room_name", default="avatar_room")
-@click.option("--task_name", default="avatar_game")
-@click.option("--layout_name", default="avatar_layout")
-@click.option("--slurk_host", default="127.0.0.1")
-@click.option("--slurk_port", default="5000")
-@click.option("--slurk_context", default=None)
-@click.option("--token", default="00000000-0000-0000-0000-000000000000")
-def start_demo_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_context, token):
+@click.option("--room_name", default="avatar_room", show_default=True, required=True)
+@click.option("--task_name", default="avatar_game", show_default=True, required=True)
+@click.option("--layout_name", default="avatar_layout", show_default=True, required=True)
+@click.option("--slurk_host", default="127.0.0.1", show_default=True, required=True)
+@click.option("--slurk_port", default="5000", show_default=True, required=True)
+@click.option("--slurk_context", default=None, show_default=True)
+@click.option("--token", default="00000000-0000-0000-0000-000000000000", show_default=True, required=True)
+def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_context, token):
+    """Setup the avatar game.
+
+        \b
+        TOKEN the admin token for the slurk rest api. You get this token, when starting slurk.
+        ROOM_NAME the name of the slurk room to create
+        TASK_NAME the name of the slurk task to create
+        LAYOUT_NAME the name of the layout which will get uploaded for the room
+        SLURK_HOST domain of the the slurk app
+        SLURK_PORT port of the slurk app
+        SLURK_CONTEXT (optional) sub-path to the slurk host
+    """
     if slurk_port == "None":
         slurk_port = None
 
@@ -207,4 +218,4 @@ def start_demo_game(room_name, task_name, layout_name, slurk_host, slurk_port, s
 
 
 if __name__ == '__main__':
-    start_demo_game()
+    setup_game()

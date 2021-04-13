@@ -157,9 +157,10 @@ class ADEMap(AbstractMap):
 
     # not sure the following is the python way to do this... this is a
     # class attribute, so at least this is only done once...
-    if not os.path.isfile('resources/ade_cat_instances.json'):
-        raise FileNotFoundError('"ade_cat_instance.json" not found. Run make_and_write_instance_list.py?')
-    with open('resources/ade_cat_instances.json') as f:
+    if not os.path.isfile('avatar/resources/ade_cat_instances.json'):
+        raise FileNotFoundError("Could not find 'avatar/resources/ade_cat_instances.json'. "
+                                "Make sure you run the script from the correct directory.")
+    with open('avatar/resources/ade_cat_instances.json') as f:
         _cat_instances = json.load(f)
 
     def __init__(self, n: int, m: int, n_rooms: int, types_to_repeat: list = None):
