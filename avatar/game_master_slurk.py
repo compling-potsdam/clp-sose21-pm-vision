@@ -163,7 +163,7 @@ class GameMaster(socketIO_client.BaseNamespace):
             return
         game.join(user["id"], user["name"])
         self.__send_private_message(f"Welcome, {user['name']}, I am your {GameMaster.NAME}!", game.room, user["id"])
-        self.__send_private_message(game.get_mission(user["id"]), game.room, user["id"])
+        # self.__send_private_message(game.get_mission(user["id"]), game.room, user["id"])
         self.__start_game_if_possible(user, game)
 
     def __pause_game(self, user: dict, game: MapWorldGame):

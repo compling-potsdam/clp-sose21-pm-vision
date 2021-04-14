@@ -78,6 +78,10 @@ class SlurkApi:
         r = requests.post(f"{self.base_api}/room", headers=self.post_headers, data=json.dumps(payload))
         return json.loads(r.text)
 
+    def delete_room(self, room_name):
+        r = requests.delete(f"{self.base_api}/room/{room_name}", headers=self.post_headers)
+        return json.loads(r.text)
+
     def get_tasks(self):
         """
         :return: [
@@ -174,27 +178,25 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
     slurk_api.update_layout(game_layout, layout_id)
 
     # Use the REST API to create a game room
-    room_exists = False
     rooms = slurk_api.get_rooms()
     for room in rooms:
         if room["name"] == room_name:
-            room_exists = True
-            print("Game room already exists.")
+            print(f"Game room already exists. Removing old room with name '{room_name}'.")
+            slurk_api.delete_room(room_name)
             break
 
-    if not room_exists:
-        print(f"Create game room '{room_name}'.")
-        print(slurk_api.create_room({
-            "name": room_name,
-            "label": "Avatar Game Room",
-            "layout": layout_id
-        }))
+    print(f"Create game room '{room_name}'.")
+    print(slurk_api.create_room({
+        "name": room_name,
+        "label": "Avatar Game Room",
+        "layout": layout_id
+    }))
 
-        # Use the Event API to publish room_created event
-        socket_url = build_url(slurk_host, slurk_context)
-        sio = socketIO_client.SocketIO(socket_url, slurk_port, headers={"Name": "Game Setup"})
-        sio.emit("room_created", {"room": room_name, "task": task_id})
-        sio.disconnect()
+    # Use the Event API to publish room_created event
+    socket_url = build_url(slurk_host, slurk_context)
+    sio = socketIO_client.SocketIO(socket_url, slurk_port, headers={"Name": "Game Setup"})
+    sio.emit("room_created", {"room": room_name, "task": task_id})
+    sio.disconnect()
 
     # Use the REST API to create game tokens
     print("Master token: ", slurk_api.create_token({
