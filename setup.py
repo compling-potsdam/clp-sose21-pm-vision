@@ -19,7 +19,8 @@ setup(
     install_requires=[
         "socketio-client==0.7.2",
         "click==7.1.2",
-        "networkx==2.5"
+        "networkx==2.5",
+        "transitions==0.8.7"
     ],
 
     # The project's main homepage.
