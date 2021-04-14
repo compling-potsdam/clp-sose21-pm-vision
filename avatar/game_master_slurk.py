@@ -31,6 +31,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         self.map_width = 4
         self.map_height = 4
         self.map_rooms = 8
+        self.map_types_to_repeat = [2, 2]
         self.emit("ready")  # invokes on_joined_room for the token room so we can get the user.id
 
     def set_base_image_url(self, base_image_url: str):
@@ -205,7 +206,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                                         game.room, user["id"])
 
     def __start_game(self, game: MapWorldGame):
-        game.reset(self.map_width, self.map_height, self.map_rooms)
+        game.reset(self.map_width, self.map_height, self.map_rooms, self.map_types_to_repeat)
         user_ids = game.get_players()
         for user_id in user_ids:
             if game.is_avatar(user_id):

@@ -9,7 +9,7 @@ class ADEMapTestCase(unittest.TestCase):
 
     def test_print_mapping(self):
         # Create map with five rooms on a four times three grid with no repetitions
-        map = ADEMap(n=4, m=3, n_rooms=5)
+        map = ADEMap(n=4, m=4, n_rooms=8, types_to_repeat=[2, 2])
         map.print_mapping()
 
     def test_plot_graph(self):

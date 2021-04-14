@@ -115,7 +115,7 @@ class MapWorldGame(Game):
         # Avatar movement was successful
         return self.get_observation(player)
 
-    def reset(self, height: int, width: int, rooms: int):
+    def reset(self, height: int, width: int, rooms: int, types_to_repeat: list):
         """
             Start random map.
 
@@ -123,7 +123,7 @@ class MapWorldGame(Game):
         :param width: of the map
         :param rooms: in the map
         """
-        ademap = ADEMap(height, width, rooms)
+        ademap = ADEMap(height, width, rooms, types_to_repeat=types_to_repeat)
         self.mapworld = MapWorld(ademap.to_fsa_def(), ['instance', 'type'])
         self.target_state = self.choose_random_target_state()
         self.done = False
