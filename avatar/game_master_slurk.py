@@ -26,6 +26,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         super().__init__(io, path)
         self.id = None
         self.base_image_url = None
+        self.image_server_auth = None
         self.games = {}  # game by room_name
         self.map_width = 4
         self.map_height = 4
@@ -34,6 +35,9 @@ class GameMaster(socketIO_client.BaseNamespace):
 
     def set_base_image_url(self, base_image_url: str):
         self.base_image_url = base_image_url
+
+    def set_image_server_auth(self, image_server_auth: str):
+        self.image_server_auth = image_server_auth
 
     def on_joined_room(self, data: dict):
         """
@@ -198,6 +202,8 @@ class GameMaster(socketIO_client.BaseNamespace):
 
     def __send_private_image(self, image_url: str, room_name: str, user_id: int):
         image_url = f"{self.base_image_url}/{image_url}"
+        if self.set_image_server_auth:
+            image_url = image_url + f"?code={self.image_server_auth}"
         print(image_url)
         self.emit("set_attribute",
                   {"id": "current-image",
