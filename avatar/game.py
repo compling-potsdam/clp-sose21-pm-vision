@@ -65,6 +65,7 @@ class MapWorldGame(Game):
         super().__init__(game_room, sid, game_role)
         self.mapworld = None
         self.target_state = None
+        self.is_done = False
 
     def is_ready(self):
         return self.has_player_with_role(MapWorldGame.ROLE_AVATAR) and len(self.get_players()) >= 2
@@ -72,7 +73,13 @@ class MapWorldGame(Game):
     def has_started(self):
         return self.mapworld and self.target_state
 
+    def set_done(self):
+        self.is_done = True
+
     def is_done(self):
+        return self.is_done
+
+    def is_success(self):
         if self.has_started():
             return self.mapworld.state == self.target_state
         return False
@@ -83,6 +90,8 @@ class MapWorldGame(Game):
     def step(self, player: int, action: str):
         """
         Performs the action, when player is Avatar. Otherwise, we just return the current observation.
+
+        TODO handle "done" action for the player as success or failure; return a reward
 
         :return: {
             "type": room_type,
@@ -117,6 +126,7 @@ class MapWorldGame(Game):
         ademap = ADEMap(height, width, rooms)
         self.mapworld = MapWorld(ademap.to_fsa_def(), ['instance', 'type'])
         self.target_state = self.choose_random_target_state()
+        self.is_done = False
         return self.get_observations()
 
     def choose_random_target_state(self):

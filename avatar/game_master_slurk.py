@@ -82,6 +82,10 @@ class GameMaster(socketIO_client.BaseNamespace):
             self.__control_game(command, user, game)
 
     def __step_game(self, command: str, user: dict, game: MapWorldGame):
+        if game.is_done():
+            self.__send_private_message(
+                "The game already ended. Wait for the player to /restart the game.", game.room, user["id"])
+            return
         """
             Actions performed by the avatar.
         """
@@ -94,7 +98,7 @@ class GameMaster(socketIO_client.BaseNamespace):
             Actions performed by the player.
         """
         if command == "done":
-            self.__end_game_if_possible(user, game)
+            self.__end_game(user, game)
         elif command == "restart":
             self.__start_game_if_possible(user, game)
         elif command.startswith("set_map"):
@@ -154,7 +158,8 @@ class GameMaster(socketIO_client.BaseNamespace):
 
     def __join_game(self, user: dict, game: MapWorldGame):
         if game.has_player(user["id"]):
-            self.__send_private_message(f"You already joined the game!", game.room, user["id"])
+            # TODO log
+            # self.__send_private_message(f"You already joined the game!", game.room, user["id"])
             return
         game.join(user["id"], user["name"])
         self.__send_private_message(f"Welcome, {user['name']}, I am your {GameMaster.NAME}!", game.room, user["id"])
@@ -162,28 +167,46 @@ class GameMaster(socketIO_client.BaseNamespace):
         self.__start_game_if_possible(user, game)
 
     def __pause_game(self, user: dict, game: MapWorldGame):
-        self.__send_room_message(f"{user['name']} left the game.", game.room)
+        # TODO log
+        # self.__send_room_message(f"{user['name']} left the game.", game.room)
+        pass
 
-    def __end_game_if_possible(self, user: dict, game: MapWorldGame):
+    def __end_game(self, user: dict, game: MapWorldGame):
         if game.is_done():
             self.__send_private_message(
-                "Congrats! You are correct. The avatar has reached your room. Type /restart if you want to play again.",
-                game.room, user["id"])
+                "The game already ended. Type /restart if you want to play again.", game.room, user["id"])
+            return
+        if game.is_success():
+            self.__send_private_message(
+                "Congrats, you'll survive! The rescue robot is at your location. "
+                "Type /restart if you want to get lost again.", game.room, user["id"])
         else:
-            self.__send_private_message("Nope, the avatar has not reached your room yet.", game.room, user["id"])
+            self.__send_private_message("The rescue robot has not reached you. You die. Sorry. "
+                                        "Type /restart if you want to get lost again.", game.room, user["id"])
+        game.set_done()
 
     def __start_game_if_possible(self, user: dict, game: MapWorldGame):
         if game.is_ready():
             self.__start_game(game)
         else:
-            self.__send_private_message("I will prepare the game for you now... this might take a while.!",
+            self.__send_private_message("I will prepare the world for you now... this might take a while.!",
                                         game.room, user["id"])
 
     def __start_game(self, game: MapWorldGame):
         game.reset(self.map_width, self.map_height, self.map_rooms)
         user_ids = game.get_players()
         for user_id in user_ids:
-            self.__send_private_message("The game starts now... Have fun!", game.room, user_id)
+            if game.is_avatar(user_id):
+                self.__send_private_message(
+                    "You are a rescue bot. A person is in need for your help. "
+                    "I'm afraid, you don't have a human detector attached, so the other one has to decide, "
+                    "if you reached the location. Therefore listen carefully to the instructions. Go -- have fun!",
+                    game.room, user_id)
+            else:
+                self.__send_private_message(
+                    "You are stranded, helpless. "
+                    "You need to direct your invisible rescue robot to your location or you will die. Go -- have fun!",
+                    game.room, user_id)
             # Send initial observations
             observation = game.get_observation(user_id)
             self.__send_observation(observation, game.room, user_id)
