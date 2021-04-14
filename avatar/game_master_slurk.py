@@ -84,7 +84,7 @@ class GameMaster(socketIO_client.BaseNamespace):
     def __step_game(self, command: str, user: dict, game: MapWorldGame):
         if game.is_done():
             self.__send_private_message(
-                "The game already ended. Wait for the player to /restart the game.", game.room, user["id"])
+                "The game already ended. Wait for the player to /start the game.", game.room, user["id"])
             return
         """
             Actions performed by the avatar.
@@ -99,7 +99,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         """
         if command == "done":
             self.__end_game(user, game)
-        elif command == "restart":
+        elif command == "start":
             self.__start_game_if_possible(user, game)
         elif command.startswith("set_map"):
             try:
@@ -113,7 +113,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                     game.room, user["id"])
         else:
             self.__send_private_message(
-                "You cannot use the command '/%s'. You may use '/set_map', '/done', '/restart' or '/rejoin'." % command,
+                "You cannot use the command '/%s'. You may use '/set_map', '/done', '/start' or '/rejoin'." % command,
                 game.room, user["id"])
 
     def __set_map(self, setting: str):
@@ -164,7 +164,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         game.join(user["id"], user["name"])
         self.__send_private_message(f"Welcome, {user['name']}, I am your {GameMaster.NAME}!", game.room, user["id"])
         # self.__send_private_message(game.get_mission(user["id"]), game.room, user["id"])
-        self.__start_game_if_possible(user, game)
+        # self.__start_game_if_possible(user, game)
 
     def __pause_game(self, user: dict, game: MapWorldGame):
         # TODO log
@@ -174,15 +174,27 @@ class GameMaster(socketIO_client.BaseNamespace):
     def __end_game(self, user: dict, game: MapWorldGame):
         if game.is_done():
             self.__send_private_message(
-                "The game already ended. Type /restart if you want to play again.", game.room, user["id"])
+                "The game already ended. Type /start if you want to play again.", game.room, user["id"])
             return
-        if game.is_success():
-            self.__send_private_message(
-                "Congrats, you'll survive! The rescue robot is at your location. "
-                "Type /restart if you want to get lost again.", game.room, user["id"])
-        else:
-            self.__send_private_message("The rescue robot has not reached you. You die. Sorry. "
-                                        "Type /restart if you want to get lost again.", game.room, user["id"])
+        user_ids = game.get_players()
+        for user_id in user_ids:
+            if game.is_success():
+                if game.is_avatar(user_id):
+                    self.__send_private_message(
+                        "The player ended the game and was lucky. You reached the players location. Hurray!"
+                        "Wait for the player to /start the game.", game.room, user["id"])
+                else:
+                    self.__send_private_message(
+                        "Congrats, you'll survive! The rescue robot is at your location with the medicine. "
+                        "Type /start if you want to get lost again.", game.room, user["id"])
+            else:
+                if game.is_avatar(user_id):
+                    self.__send_private_message(
+                        "The player ended the game and will die horribly, because you were not there yet."
+                        "Wait for the player to /start the game.", game.room, user["id"])
+                else:
+                    self.__send_private_message("The rescue robot has not reached you. You die horribly. Sorry. "
+                                                "Type /start if you want to get lost again.", game.room, user["id"])
         game.set_done()
 
     def __start_game_if_possible(self, user: dict, game: MapWorldGame):
@@ -198,9 +210,9 @@ class GameMaster(socketIO_client.BaseNamespace):
         for user_id in user_ids:
             if game.is_avatar(user_id):
                 self.__send_private_message(
-                    "You are a rescue bot. A person is in need for your help. "
+                    "You are a rescue bot. A person is stuck and needs its medicine to survive. "
                     "I'm afraid, you don't have a human detector attached, so the other one has to decide, "
-                    "if you reached the location. Therefore listen carefully to the instructions. Go -- have fun!",
+                    "if you reached the location. Therefore listen carefully to the instructions...",
                     game.room, user_id)
             else:
                 self.__send_private_message(
