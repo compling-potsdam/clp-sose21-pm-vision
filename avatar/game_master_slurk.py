@@ -183,19 +183,19 @@ class GameMaster(socketIO_client.BaseNamespace):
                 if game.is_avatar(user_id):
                     self.__send_private_message(
                         "The player ended the game and was lucky. You reached the players location. Hurray!"
-                        "Wait for the player to /start the game.", game.room, user["id"])
+                        "Wait for the player to /start the game.", game.room, user_id)
                 else:
                     self.__send_private_message(
                         "Congrats, you'll survive! The rescue robot is at your location with the medicine. "
-                        "Type /start if you want to get lost again.", game.room, user["id"])
+                        "Type /start if you want to get lost again.", game.room, user_id)
             else:
                 if game.is_avatar(user_id):
                     self.__send_private_message(
                         "The player ended the game and will die horribly, because you were not there yet."
-                        "Wait for the player to /start the game.", game.room, user["id"])
+                        "Wait for the player to /start the game.", game.room, user_id)
                 else:
                     self.__send_private_message("The rescue robot has not reached you. You die horribly. Sorry. "
-                                                "Type /start if you want to get lost again.", game.room, user["id"])
+                                                "Type /start if you want to get lost again.", game.room, user_id)
         game.set_done()
 
     def __start_game_if_possible(self, user: dict, game: MapWorldGame):
@@ -217,8 +217,9 @@ class GameMaster(socketIO_client.BaseNamespace):
                     game.room, user_id)
             else:
                 self.__send_private_message(
-                    "You are stranded, helpless. "
-                    "You need to direct your invisible rescue robot to your location or you will die. Go -- have fun!",
+                    "You are stranded, helpless. You need to direct your invisible rescue robot "
+                    "to your location or you will die. Type /done when you thin the rescue robot is at your location. "
+                    "Go -- have fun!",
                     game.room, user_id)
             # Send initial observations
             observation = game.get_observation(user_id)
