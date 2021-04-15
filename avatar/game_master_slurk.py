@@ -163,7 +163,14 @@ class GameMaster(socketIO_client.BaseNamespace):
             # self.__send_private_message(f"You already joined the game!", game.room, user["id"])
             return
         game.join(user["id"], user["name"])
-        self.__send_private_message(f"Welcome, {user['name']}, I am your {GameMaster.NAME}!", game.room, user["id"])
+        if game.is_avatar(user["id"]):
+            self.__send_private_message(
+                f"Welcome, {user['name']}, I am your {GameMaster.NAME}! Type /start to start a game.", game.room,
+                user["id"])
+        else:
+            self.__send_private_message(
+                f"Welcome, {user['name']}, I am your {GameMaster.NAME}! Wait for the player to start the game.",
+                game.room, user["id"])
         # self.__send_private_message(game.get_mission(user["id"]), game.room, user["id"])
         # self.__start_game_if_possible(user, game)
 
