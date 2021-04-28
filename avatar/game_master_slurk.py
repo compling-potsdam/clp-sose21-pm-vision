@@ -92,7 +92,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         """
         observation = game.step(user["id"], command)
         if observation:
-            self.__send_observation(observation, game.room, user["id"])
+            self.__send_observation(observation, game.room, user["id"], game.is_avatar(user["id"]))
 
     def __control_game(self, command: str, user: dict, game: MapWorldGame):
         """
@@ -102,6 +102,8 @@ class GameMaster(socketIO_client.BaseNamespace):
             self.__end_game(user, game)
         elif command == "start":
             self.__start_game_if_possible(user, game)
+        elif command == "look":
+            self.__observe_if_possible(user, game)
         elif command.startswith("set_map"):
             try:
                 self.__set_map(command)
@@ -206,6 +208,17 @@ class GameMaster(socketIO_client.BaseNamespace):
                                                 "Type /start if you want to get lost again.", game.room, user_id)
         game.set_done()
 
+    def __observe_if_possible(self, user: dict, game: MapWorldGame):
+        if game.is_ready():
+            self.__send_observations(game)
+        else:
+            self.__send_private_message("Game did not start yet!", game.room, user["id"])
+
+    def __send_observations(self, game: MapWorldGame):
+        for user_id in game.get_players():
+            observation = game.get_observation(user_id)
+            self.__send_observation(observation, game.room, user_id, is_avatar=game.is_avatar(user_id))
+
     def __start_game_if_possible(self, user: dict, game: MapWorldGame):
         if game.is_ready():
             self.__start_game(game)
@@ -215,8 +228,7 @@ class GameMaster(socketIO_client.BaseNamespace):
 
     def __start_game(self, game: MapWorldGame):
         game.reset(self.map_width, self.map_height, self.map_rooms, self.map_types_to_repeat)
-        user_ids = game.get_players()
-        for user_id in user_ids:
+        for user_id in game.get_players():
             if game.is_avatar(user_id):
                 self.__send_private_message(
                     "You are a rescue bot. A person is stuck and needs its medicine to survive. "
@@ -229,15 +241,17 @@ class GameMaster(socketIO_client.BaseNamespace):
                     "to your location or you will die. Type /done when you thin the rescue robot is at your location. "
                     "Go -- have fun!",
                     game.room, user_id)
-            # Send initial observations
-            observation = game.get_observation(user_id)
-            self.__send_observation(observation, game.room, user_id)
+        # Send initial observations
+        self.__send_observations(game)
 
-    def __send_observation(self, observation: dict, room_name: str, user_id: int):
+    def __send_observation(self, observation: dict, room_name: str, user_id: int, is_avatar: bool):
         if "instance" in observation:
             self.__set_room_image(observation["instance"], room_name, user_id)
-            # Send observation event for bots (they cannot see the browser)
-            self.emit("observation", {"observation": observation}, room=room_name)
+            if is_avatar:
+                # Send observation event for bots (they cannot see the browser)
+                # self.emit("observation", {"observation": observation}, room=room_name)
+                # We use private messages as a "vehicle" as I cannot see how to transfer arbitrary data
+                self.__send_private_message({"observation": observation}, room_name, user_id)
         if "situation" in observation:
             self.__send_private_message(observation["situation"], room_name, user_id)
 
