@@ -60,6 +60,9 @@ def start_and_wait(token, slurk_host, slurk_context, slurk_port,
     if image_server_port:
         image_server_port = int(image_server_port)
 
+    if image_server_auth == "None":
+        image_server_auth = None
+
     custom_headers = {"Authorization": token, "Name": GameMaster.NAME}
     socket_url = build_url(slurk_host, slurk_context)
     sio = socketIO_client.SocketIO(socket_url, slurk_port, headers=custom_headers, Namespace=GameMaster)
