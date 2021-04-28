@@ -60,4 +60,4 @@ Notice: Use the python version X.Y of your choice. Preferebly add this export al
 You can also simply perform `python setup.py install`. This will install the app into the currently activate python
 environment.
 
-
+After installation, you can use the scripts `game-setup` and `game-master`.

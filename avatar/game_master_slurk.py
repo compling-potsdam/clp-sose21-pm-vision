@@ -235,7 +235,9 @@ class GameMaster(socketIO_client.BaseNamespace):
 
     def __send_observation(self, observation: dict, room_name: str, user_id: int):
         if "instance" in observation:
-            self.__send_private_image(observation["instance"], room_name, user_id)
+            self.__set_room_image(observation["instance"], room_name, user_id)
+            # Send observation event for bots (they cannot see the browser)
+            self.emit("observation", {"observation": observation}, room=room_name)
         if "situation" in observation:
             self.__send_private_message(observation["situation"], room_name, user_id)
 
@@ -245,7 +247,7 @@ class GameMaster(socketIO_client.BaseNamespace):
     def __send_private_message(self, message: str, room_name: str, user_id: int):
         self.emit("text", {"msg": message, "room": room_name, "receiver_id": user_id}, check_error_callback)
 
-    def __send_private_image(self, image_url: str, room_name: str, user_id: int):
+    def __set_room_image(self, image_url: str, room_name: str, user_id: int):
         image_url = f"{self.base_image_url}/{image_url}"
         if self.set_image_server_auth:
             image_url = image_url + f"?code={self.image_server_auth}"
