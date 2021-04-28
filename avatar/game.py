@@ -10,6 +10,22 @@ DIRECTION_TO_WORD = {
 }
 
 
+def direction_to_word(direction: str):
+    if direction in DIRECTION_TO_WORD:
+        return DIRECTION_TO_WORD[direction]
+    return direction
+
+
+def directions_to_sent(directions: str):
+    if not directions:
+        return "nowhere"
+    n = len(directions)
+    if n == 1:
+        return direction_to_word(directions[0])
+    words = [direction_to_word(d) for d in directions]
+    return ", ".join(words[:-1]) + " or " + words[-1]
+
+
 class Game:
     """
         The state of a game.
@@ -109,7 +125,7 @@ class MapWorldGame(Game):
             descriptors, directions = self.mapworld.try_transition(action)
         # Player is not avatar or avatar cannot move there
         if descriptors is None:
-            return {"situation": "This is not possible. You can go %s." % (self.directions_to_sent(directions)),
+            return {"situation": "This is not possible. You can go %s." % (directions_to_sent(directions)),
                     "directions": directions,
                     "player": player}
         # Avatar movement was successful
@@ -168,21 +184,7 @@ class MapWorldGame(Game):
         return {
             "type": room_type,
             "instance": game_obs["descriptors"]["instance"],
-            "situation": "This is what you see. You can go %s." % (self.directions_to_sent(directions)),
+            "situation": "This is what you see. You can go %s." % (directions_to_sent(directions)),
             "player": player,
             "directions": directions
         }
-
-    def direction_to_word(self, direction: str):
-        if direction in DIRECTION_TO_WORD:
-            return DIRECTION_TO_WORD[direction]
-        return direction
-
-    def directions_to_sent(self, directions: str):
-        if not directions:
-            return "nowhere"
-        n = len(directions)
-        if n == 1:
-            return self.direction_to_word(directions[0])
-        words = [self.direction_to_word(d) for d in directions]
-        return ", ".join(words[:-1]) + " or " + words[-1]
