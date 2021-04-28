@@ -1,9 +1,9 @@
 """
-    Slurk client for the avatar
+    Slurk client as wrapper for the avatar agent to handle the slurky socketio stuff
 """
 import socketIO_client
 
-from avatar.game_avatar_models import Avatar
+from avatar.game_avatar import Avatar
 
 
 def check_error_callback(success, error=None):
@@ -13,7 +13,7 @@ def check_error_callback(success, error=None):
 
 class AvatarBot(socketIO_client.BaseNamespace):
     """
-        Listens to the users messages and execute move commands.
+        Listens to the users messages and execute move commands. Kind of an environment adapter.
 
         The game rooms are already created with the setup script. We only join the rooms.
 
@@ -25,11 +25,11 @@ class AvatarBot(socketIO_client.BaseNamespace):
     def __init__(self, io, path):
         super().__init__(io, path)
         self.id = None
-        self.model = None
+        self.agent = None
         self.emit("ready")  # invokes on_joined_room for the token room so we can get the user.id
 
-    def set_model(self, model: Avatar):
-        self.model = model
+    def set_agent(self, agent: Avatar):
+        self.agent = agent
 
     def on_joined_room(self, data: dict):
         """
@@ -41,18 +41,24 @@ class AvatarBot(socketIO_client.BaseNamespace):
         if not self.id:
             self.id = data['user']
 
-    def on_observation(self, data: dict):
-        """
-            Receive the new observation for the bot.
-        """
-        obs = data["observation"]
-        self.model.look_at(obs)
-
     def on_text_message(self, data: dict):
         """
-            Receive and respond in a serial manner. (Would could also consider to create seperate response threads)
+            This is a bit complicated, because we have two sender of events:
+                A. the game master, when a new game observation or game reward is triggered
+                B. the play who is sending messages directly to the bot (without the observation)
 
-            :param data: {
+                Actually, it would be cleaner to always get the observation
+                or rather the player message as part of the observation / environment.
+
+            :param data:
+            A. for observations it looks like {
+                "type": room_type,
+                "instance": game_obs["descriptors"]["instance"],
+                "situation": "This is what you see. You can go %s." % (directions_to_sent(directions)),
+                "player": player,
+                "directions": directions
+            }
+            B. for messages it looks like {
                 'msg': payload['msg'],
                 'user': {
                     'id': current_user_id,
@@ -64,20 +70,37 @@ class AvatarBot(socketIO_client.BaseNamespace):
                 'html': payload.get('html', False)
             }
         """
+        if not self.id:
+            return  # not ready yet
         message = data["msg"]
         room_name = data["room"]
         user_name = data["user"]["name"]
+
         if user_name == "Game Master":
-            return  # ignore game master messages for the bot; observations are sent via on_observation
-        action = self.model.read_and_decide(message)
-        if action not in AvatarBot.ACTIONS:
-            print("Unknown avatar decision: " + action)
-            return
-        if action == "move":
-            command = self.model.read_and_move(message)
+            # A. Handle new observations from game master
+            if isinstance(message, dict) and "observation" in message:
+                obs = message["observation"]
+                actions = self.agent.step({"image": obs["instance"], "directions": obs["directions"], "message": None})
+                self.__perform_actions(actions, room_name)
+                if isinstance(message, dict) and "reward" in message:
+                    # TODO: handle reward
+                    ...
+            return  # ignore other game master messages for the bot
+
+        user_id = data["user"]["id"]
+        if user_id == self.id:
+            return  # ignore our own messages
+
+        # B. Handle player messages
+        actions = self.agent.step({"image": None, "directions": None, "message": message})
+        self.__perform_actions(actions, room_name)
+
+    def __perform_actions(self, actions, room_name):
+        if "move" in actions:
+            command = actions["move"]
             self.__send_command(command, room_name)
-        if action == "respond":
-            response = self.model.read_and_respond(message)
+        if "response" in actions:
+            response = actions["response"]
             self.__send_message(response, room_name)
 
     def __send_message(self, message, room_name):
