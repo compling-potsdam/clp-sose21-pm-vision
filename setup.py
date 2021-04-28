@@ -94,6 +94,7 @@ setup(
     entry_points={
         'console_scripts': [
             'game-master=avatar.scripts.slurk.game_master_cli:start_and_wait',
+            'game-avatar=avatar.scripts.slurk.game_avatar_cli:start_and_wait',
             'game-setup=avatar.scripts.slurk.game_setup_cli:setup_game'
         ],
     },
