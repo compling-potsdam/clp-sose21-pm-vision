@@ -107,8 +107,6 @@ class MapWorldGame(Game):
         """
         Performs the action, when player is Avatar. Otherwise, we just return the current observation.
 
-        TODO handle "done" action for the player as success or failure; return a reward
-
         :return: {
             "type": room_type,
             "instance": game_obs["descriptors"]["instance"],
@@ -127,7 +125,10 @@ class MapWorldGame(Game):
         if descriptors is None:
             return {"situation": "This is not possible. You can go %s." % (directions_to_sent(directions)),
                     "directions": directions,
-                    "player": player}
+                    "player": player,
+                    "reward": -.1,  # small negative reward for each step
+                    "done": False
+                    }
         # Avatar movement was successful
         return self.get_observation(player)
 
@@ -181,10 +182,20 @@ class MapWorldGame(Game):
             directions = game_obs["directions"]
         else:
             directions = []  # there is no movement for the director
+        is_done = self.is_done()
+        is_success = self.is_success()
+        if is_done and is_success:
+            reward = 1.
+        elif is_done and not is_success:
+            reward = -1.
+        else:
+            reward = -.1  # small negative reward for each step
         return {
             "type": room_type,
             "instance": game_obs["descriptors"]["instance"],
             "situation": "This is what you see. You can go %s." % (directions_to_sent(directions)),
             "player": player,
-            "directions": directions
+            "directions": directions,
+            "reward": reward,
+            "done": is_done
         }

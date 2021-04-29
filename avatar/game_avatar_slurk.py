@@ -77,22 +77,27 @@ class AvatarBot(socketIO_client.BaseNamespace):
         user_name = data["user"]["name"]
 
         if user_name == "Game Master":
-            # A. Handle new observations from game master
+            # A. Handle new observations from game master (initially, at the end or after a move command)
             if isinstance(message, dict) and "observation" in message:
                 obs = message["observation"]
-                actions = self.agent.step({"image": obs["instance"], "directions": obs["directions"], "message": None})
+                actions = self.agent.step({"image": obs["instance"],
+                                           "directions": obs["directions"],
+                                           "message": None,
+                                           "reward": obs["reward"],
+                                           "done": obs["done"]})
                 self.__perform_actions(actions, room_name)
-                if isinstance(message, dict) and "reward" in message:
-                    # TODO: handle reward
-                    ...
             return  # ignore other game master messages for the bot
 
         user_id = data["user"]["id"]
         if user_id == self.id:
             return  # ignore our own messages
 
-        # B. Handle player messages
-        actions = self.agent.step({"image": None, "directions": None, "message": message})
+        # B. Handle player messages (player cannot send anything else than messages)
+        actions = self.agent.step({"image": None,
+                                   "directions": None,
+                                   "message": message,
+                                   "reward": None,
+                                   "done": None})
         self.__perform_actions(actions, room_name)
 
     def __perform_actions(self, actions, room_name):
