@@ -59,6 +59,7 @@ class SimpleAvatar(Avatar):
         self.observation = None
 
     def step(self, observation: dict) -> dict:
+        print(observation)  # for debugging
         actions = dict()
         if observation["image"]:
             self.__update_observation(observation)
@@ -68,7 +69,6 @@ class SimpleAvatar(Avatar):
 
     def __update_observation(self, observation: dict):
         self.observation = observation
-        print("Looking at: " + str(observation))
 
     def __update_actions(self, actions, message):
         if "go" in message.lower():
