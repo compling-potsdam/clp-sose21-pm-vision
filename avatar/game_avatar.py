@@ -1,7 +1,29 @@
 """
     Avatar action routines
 """
-from avatar.game import directions_to_sent
+
+DIRECTION_TO_WORD = {
+    "n": "north",
+    "e": "east",
+    "w": "west",
+    "s": "south"
+}
+
+
+def direction_to_word(direction: str):
+    if direction in DIRECTION_TO_WORD:
+        return DIRECTION_TO_WORD[direction]
+    return direction
+
+
+def directions_to_sent(directions: str):
+    if not directions:
+        return "nowhere"
+    n = len(directions)
+    if n == 1:
+        return direction_to_word(directions[0])
+    words = [direction_to_word(d) for d in directions]
+    return ", ".join(words[:-1]) + " or " + words[-1]
 
 
 class Avatar(object):
