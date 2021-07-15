@@ -116,8 +116,9 @@ class SlurkApi:
 @click.option("--slurk_host", default="127.0.0.1", show_default=True, required=True)
 @click.option("--slurk_port", default="5000", show_default=True, required=True)
 @click.option("--slurk_context", default=None, show_default=True)
+@click.option("-v", "--verbose", is_flag=True)
 @click.option("--token", default="00000000-0000-0000-0000-000000000000", show_default=True, required=True)
-def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_context, token):
+def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_context, token, verbose):
     """Setup the avatar game.
 
         \b
@@ -145,14 +146,17 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
         if task["name"] == task_name:
             task_exists = True
             task_id = task["id"]
-            print(f"Task {task_name} already exists")
+            if verbose:
+                print(f"Task {task_name} already exists")
             break
 
     if not task_exists:
-        print(f"Create game task '{task_name}'.")
+        if verbose:
+            print(f"Create game task '{task_name}'.")
         new_task = slurk_api.create_task({"name": task_name, "num_users": 3})
         task_id = new_task["id"]
-        print(new_task)
+        if verbose:
+            print(new_task)
 
     # Use the REST API to create a game layout
     layout_id = None
@@ -162,26 +166,30 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
         if layout["name"] == layout_name:
             layout_exists = True
             layout_id = layout["id"]
-            print(f"Layout {layout_name} already exists")
+            if verbose:
+                print(f"Layout {layout_name} already exists")
             break
 
     game_layout = load_project_resource("avatar/resources/game_layout.json")
 
     if not layout_exists:
-        print(f"Create game layout '{layout_name}'.")
+        if verbose:
+            print(f"Create game layout '{layout_name}'.")
         new_layout = slurk_api.create_layout(game_layout)
         layout_id = new_layout["id"]
 
     # We update the layout. By default, the title is the name. But we want a different name.
     game_layout["name"] = layout_name
-    print(f"Update layout {layout_name}")
+    if verbose:
+        print(f"Update layout {layout_name}")
     slurk_api.update_layout(game_layout, layout_id)
 
     # Use the REST API to create a game room
     rooms = slurk_api.get_rooms()
     for room in rooms:
         if room["name"] == room_name:
-            print(f"Game room already exists. Removing old room with name '{room_name}'.")
+            if verbose:
+                print(f"Game room already exists. Removing old room with name '{room_name}'.")
             slurk_api.delete_room(room_name)
             break
 
