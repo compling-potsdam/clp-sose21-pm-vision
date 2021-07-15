@@ -164,7 +164,9 @@ class GameMaster(socketIO_client.BaseNamespace):
             # TODO log
             # self.__send_private_message(f"You already joined the game!", game.room, user["id"])
             return
-        game.join(user["id"], user["name"])
+        user_name = user["name"]
+        game_role = MapWorldGame.ROLE_AVATAR if user_name.startswith(MapWorldGame.ROLE_AVATAR) else user_name
+        game.join(user["id"], game_role)
         if game.is_avatar(user["id"]):
             self.__send_private_message(
                 f"Welcome, {user['name']}, I am your {GameMaster.NAME}! Wait for the player to start the game.",
