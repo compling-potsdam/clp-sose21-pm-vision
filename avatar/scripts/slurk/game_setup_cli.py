@@ -214,7 +214,13 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
         "message_image": True,
         "user_room_join": True
     }))
-    print("Player token: ", slurk_api.create_token({
+    print("Player 1 token: ", slurk_api.create_token({
+        "room": room_name,
+        "task": task_id,
+        "message_text": True,
+        "message_command": True
+    }))
+    print("Player 2 token: ", slurk_api.create_token({
         "room": room_name,
         "task": task_id,
         "message_text": True,
