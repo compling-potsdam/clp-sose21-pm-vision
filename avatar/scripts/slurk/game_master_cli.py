@@ -15,7 +15,7 @@ from avatar.game_master_slurk import GameMaster
 
 
 def build_url(host, context=None, port=None, base_url=None, auth=None):
-    uri = "https://"
+    uri = "http://"
     if auth:
         uri = uri + f"{auth}@"  # seems not to work (try using query parameter)
     uri = uri + f"{host}"
