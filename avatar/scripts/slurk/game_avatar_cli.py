@@ -30,6 +30,8 @@ def build_url(host, context=None, port=None, base_url=None, auth=None):
 
 
 @click.command()
+@click.option("--name", show_default=True, required=False,
+              help="The name suffix for the avatar. The avatar will be Avatar-<name> or just Avatar if not given.")
 @click.option("--token", show_default=True, required=True,
               help="the token for the avatar bot. You get this afer game-setup. "
                    "The bot will join the token room.")
@@ -42,7 +44,7 @@ def build_url(host, context=None, port=None, base_url=None, auth=None):
 @click.option("--image_directory", default="None", show_default=True, required=True,
               help="If images are accessible by the bot, "
                    "then this is the path to the image directory usable as a prefix for images")
-def start_and_wait(token, slurk_host, slurk_context, slurk_port, image_directory):
+def start_and_wait(name, token, slurk_host, slurk_context, slurk_port, image_directory):
     """Start the game master bot."""
     if slurk_port == "None":
         slurk_port = None
@@ -53,7 +55,11 @@ def start_and_wait(token, slurk_host, slurk_context, slurk_port, image_directory
     if image_directory == "None":
         image_directory = None
 
-    custom_headers = {"Authorization": token, "Name": AvatarBot.NAME}
+    avatar_name = AvatarBot.NAME
+    if name:
+        avatar_name = avatar_name + "-" + name
+
+    custom_headers = {"Authorization": token, "Name": avatar_name}
     socket_url = build_url(slurk_host, slurk_context)
     sio = socketIO_client.SocketIO(socket_url, slurk_port, headers=custom_headers, Namespace=AvatarBot)
     # NOTE: YOU SHOULD REFERENCE YOUR MODEL HERE
