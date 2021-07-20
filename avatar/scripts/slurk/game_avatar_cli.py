@@ -30,7 +30,7 @@ def build_url(host, context=None, port=None, base_url=None, auth=None):
 
 
 @click.command()
-@click.option("--name", show_default=True, required=False,
+@click.option("--name", default="None", show_default=True, required=True,
               help="The name suffix for the avatar. The avatar will be Avatar-<name> or just Avatar if not given.")
 @click.option("--token", show_default=True, required=True,
               help="the token for the avatar bot. You get this afer game-setup. "
@@ -55,9 +55,10 @@ def start_and_wait(name, token, slurk_host, slurk_context, slurk_port, image_dir
     if image_directory == "None":
         image_directory = None
 
-    avatar_name = AvatarBot.NAME
-    if name:
-        avatar_name = avatar_name + "-" + name
+    if name == "None":
+        avatar_name = AvatarBot.NAME
+    else:
+        avatar_name = AvatarBot.NAME + "-" + name
 
     custom_headers = {"Authorization": token, "Name": avatar_name}
     socket_url = build_url(slurk_host, slurk_context)
