@@ -130,6 +130,8 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
         SLURK_PORT port of the slurk app
         SLURK_CONTEXT (optional) sub-path to the slurk host
     """
+    print("Verbose:", verbose)
+
     if slurk_port == "None":
         slurk_port = None
 
@@ -194,11 +196,13 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
             break
 
     print(f"Create game room '{room_name}'.")
-    print(slurk_api.create_room({
+    created_room = slurk_api.create_room({
         "name": room_name,
         "label": "Avatar Game Room",
         "layout": layout_id
-    }))
+    })
+    if verbose:
+        print(created_room)
 
     # Use the Event API to publish room_created event
     socket_url = build_url(slurk_host, slurk_context)
