@@ -61,10 +61,12 @@ def start_and_wait(name, token, slurk_host, slurk_context, slurk_port, image_dir
 
     custom_headers = {"Authorization": token, "Name": avatar_name}
     socket_url = build_url(slurk_host, slurk_context)
+    print("Try to connect to: ", socket_url)
     sio = socketIO_client.SocketIO(socket_url, slurk_port, headers=custom_headers, Namespace=AvatarBot)
     # NOTE: YOU SHOULD REFERENCE YOUR MODEL HERE
     avatar_model = SimpleAvatar(image_directory)
     sio.get_namespace().set_agent(avatar_model)
+    print("Connected and everything set. Waiting for incoming traffic...")
     sio.wait()
 
 

@@ -15,7 +15,7 @@ from avatar.game_master_slurk import GameMaster
 
 
 def build_url(host, context=None, port=None, base_url=None, auth=None):
-    uri = "http://"
+    uri = "https://"
     if auth:
         uri = uri + f"{auth}@"  # seems not to work (try using query parameter)
     uri = uri + f"{host}"
@@ -47,7 +47,7 @@ def build_url(host, context=None, port=None, base_url=None, auth=None):
 @click.option("--image_server_auth", help="credentials in format 'username:password'")
 def start_and_wait(token, slurk_host, slurk_context, slurk_port,
                    image_server_host, image_server_context, image_server_port, image_server_auth):
-    """Start the game master bot."""
+    print("Start the game master bot.")
     if slurk_port == "None":
         slurk_port = None
 
@@ -65,13 +65,16 @@ def start_and_wait(token, slurk_host, slurk_context, slurk_port,
 
     custom_headers = {"Authorization": token, "Name": GameMaster.NAME}
     socket_url = build_url(slurk_host, slurk_context)
+    print("Try to connect to: ", socket_url)
     sio = socketIO_client.SocketIO(socket_url, slurk_port, headers=custom_headers, Namespace=GameMaster)
     image_url = build_url(image_server_host, image_server_context, image_server_port)
     sio.get_namespace().set_base_image_url(image_url)
     if image_server_auth:
         # encode as base64, but keep as string
+        print("Setting image server auth: ", image_server_auth)
         image_server_auth = base64.b64encode(image_server_auth.encode("utf-8")).decode("utf-8")
         sio.get_namespace().set_image_server_auth(image_server_auth)
+    print("Connected and everything set. Waiting for incoming traffic...")
     sio.wait()
 
 
