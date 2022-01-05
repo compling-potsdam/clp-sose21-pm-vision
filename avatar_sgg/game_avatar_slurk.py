@@ -1,9 +1,9 @@
 """
-    Slurk client as wrapper for the avatar agent to handle the slurky socketio stuff
+    Slurk client as wrapper for the avatar_sgg agent to handle the slurky socketio stuff
 """
 import socketIO_client
 
-from avatar.game_avatar import Avatar
+from avatar_sgg.game_avatar import Avatar
 
 
 def check_error_callback(success, error=None):

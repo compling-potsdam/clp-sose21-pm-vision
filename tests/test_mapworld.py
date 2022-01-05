@@ -1,6 +1,6 @@
 import unittest
 
-from avatar.game import MapWorldGame
+from avatar_sgg.game import MapWorldGame
 
 
 class MapWorldGameTestCase(unittest.TestCase):

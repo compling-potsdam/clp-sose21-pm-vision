@@ -5,7 +5,7 @@ import click
 import eventlet
 import socketio
 
-from avatar.game_master_standalone import GameMaster
+from avatar_sgg.game_master_standalone import GameMaster
 
 
 @click.command()

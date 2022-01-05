@@ -6,7 +6,7 @@ import requests
 import json
 import socketIO_client
 
-from avatar import load_project_resource
+from avatar_sgg import load_project_resource
 
 
 def build_url(host, context=None, port=None, base_url=None):
@@ -119,7 +119,7 @@ class SlurkApi:
 @click.option("-v", "--verbose", is_flag=True)
 @click.option("--token", default="00000000-0000-0000-0000-000000000000", show_default=True, required=True)
 def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_context, token, verbose):
-    """Setup the avatar game.
+    """Setup the avatar_sgg game.
 
         \b
         TOKEN the admin token for the slurk rest api. You get this token, when starting slurk.
@@ -145,7 +145,7 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
     task_exists = False
     tasks = slurk_api.get_tasks()
     for task in tasks:
-        if task["name"] == task_name:
+        if "name" in tasks.keys() and task["name"] == task_name:
             task_exists = True
             task_id = task["id"]
             if verbose:
@@ -172,7 +172,7 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
                 print(f"Layout {layout_name} already exists")
             break
 
-    game_layout = load_project_resource("avatar/resources/game_layout.json")
+    game_layout = load_project_resource("avatar_sgg/resources/game_layout.json")
 
     if not layout_exists:
         if verbose:

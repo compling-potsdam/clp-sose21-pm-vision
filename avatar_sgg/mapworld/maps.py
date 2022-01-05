@@ -28,7 +28,7 @@ import os
 import matplotlib.pyplot as plt
 import zipfile
 
-from avatar import load_project_resource
+from avatar_sgg import load_project_resource
 
 
 class AbstractMap(object):
@@ -158,7 +158,7 @@ class ADEMap(AbstractMap):
                      'c/convenience_store/outdoor', 'b/bistro/outdoor',
                      'i/inn/outdoor', 'l/library/outdoor']
 
-    _cat_instances = load_project_resource("avatar/resources/ade_cat_instances.json")
+    _cat_instances = load_project_resource("avatar_sgg/resources/ade_cat_instances.json")
 
     def __init__(self, n: int, m: int, n_rooms: int, types_to_repeat: list = None):
         """

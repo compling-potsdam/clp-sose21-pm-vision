@@ -28,12 +28,12 @@ def directions_to_sent(directions: str):
 
 class Avatar(object):
     """
-        The avatar methods to be implemented
+        The avatar_sgg methods to be implemented
     """
 
     def step(self, observation: dict) -> dict:
         """
-        The current observation for the avatar.
+        The current observation for the avatar_sgg.
 
         For new player messages only the 'message' will be given.
         For new situations the 'image' and 'directions' will be given.
@@ -51,7 +51,7 @@ class Avatar(object):
 
 class SimpleAvatar(Avatar):
     """
-        The simple avatar is only repeating the observations.
+        The simple avatar_sgg is only repeating the observations.
     """
 
     def __init__(self, image_directory):

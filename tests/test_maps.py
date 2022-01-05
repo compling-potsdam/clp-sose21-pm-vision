@@ -2,7 +2,7 @@ import unittest
 
 from matplotlib import pyplot as plt
 
-from avatar.mapworld.maps import ADEMap
+from avatar_sgg.mapworld.maps import ADEMap
 
 
 class ADEMapTestCase(unittest.TestCase):

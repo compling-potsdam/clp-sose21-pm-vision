@@ -3,7 +3,7 @@
 """
 import socketIO_client
 
-from avatar.game import MapWorldGame
+from avatar_sgg.game import MapWorldGame
 
 
 def check_error_callback(success, error=None):
@@ -88,7 +88,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                 "The game already ended. Wait for the player to /start the game.", game.room, user["id"])
             return
         """
-            Actions performed by the avatar.
+            Actions performed by the avatar_sgg.
         """
         observation = game.step(user["id"], command)
         if observation:

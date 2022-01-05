@@ -1,6 +1,6 @@
 import random
-from avatar.mapworld.maps import ADEMap
-from avatar.mapworld.mapworld import MapWorld
+from avatar_sgg.mapworld.maps import ADEMap
+from avatar_sgg.mapworld.mapworld import MapWorld
 
 DIRECTION_TO_WORD = {
     "n": "north",
@@ -121,7 +121,7 @@ class MapWorldGame(Game):
         # Guard mapworld transitions by player role
         if self.is_avatar(player):
             descriptors, directions = self.mapworld.try_transition(action)
-        # Player is not avatar or avatar cannot move there
+        # Player is not avatar_sgg or avatar_sgg cannot move there
         if descriptors is None:
             return {"situation": "This is not possible. You can go %s." % (directions_to_sent(directions)),
                     "directions": directions,
@@ -147,7 +147,7 @@ class MapWorldGame(Game):
         return self.get_observations()
 
     def choose_random_target_state(self):
-        # The target state should not be the initial avatar state
+        # The target state should not be the initial avatar_sgg state
         avatar_state = self.mapworld.state
         other_states = [str(node["id"]) for node in self.mapworld.nodes if str(node["id"]) != avatar_state]
         assert avatar_state not in other_states
@@ -172,7 +172,7 @@ class MapWorldGame(Game):
         if self.is_avatar(player):
             mission += "Try to navigate to the director. The director will help you to lead you to his position."
         else:
-            mission += "Try to navigate the avatar to your room. You can type anything that might help."
+            mission += "Try to navigate the avatar_sgg to your room. You can type anything that might help."
         return mission
 
     def get_observation(self, player: int):

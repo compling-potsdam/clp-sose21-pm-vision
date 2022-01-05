@@ -11,8 +11,8 @@ import base64
 import click
 import socketIO_client
 
-from avatar.game_avatar import SimpleAvatar
-from avatar.game_avatar_slurk import AvatarBot
+from avatar_sgg.game_avatar import SimpleAvatar
+from avatar_sgg.game_avatar_slurk import AvatarBot
 
 
 def build_url(host, context=None, port=None, base_url=None, auth=None):
@@ -31,9 +31,9 @@ def build_url(host, context=None, port=None, base_url=None, auth=None):
 
 @click.command()
 @click.option("--name", default="None", show_default=True, required=True,
-              help="The name suffix for the avatar. The avatar will be Avatar-<name> or just Avatar if not given.")
+              help="The name suffix for the avatar_sgg. The avatar_sgg will be Avatar-<name> or just Avatar if not given.")
 @click.option("--token", show_default=True, required=True,
-              help="the token for the avatar bot. You get this afer game-setup. "
+              help="the token for the avatar_sgg bot. You get this afer game-setup. "
                    "The bot will join the token room.")
 @click.option("--slurk_host", default="127.0.0.1", show_default=True, required=True,
               help="domain of the the slurk app")

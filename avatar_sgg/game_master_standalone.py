@@ -3,7 +3,7 @@
 """
 import socketio
 
-from avatar.game import MapWorldGame
+from avatar_sgg.game import MapWorldGame
 
 REQ_HEADERS = ["X-Game-Mode", "X-Role"]
 MSG_WELCOME = "Welcome, I am your Game Master!"
@@ -56,7 +56,7 @@ class GameMaster(socketio.Namespace):
             # ... and start the game
             self.start_game(game)
         else:
-            # We create a new awaiting game, so that another user can connect later as either director or avatar.
+            # We create a new awaiting game, so that another user can connect later as either director or avatar_sgg.
             self.games[sid] = MapWorldGame(sid, game_role)  # there should be at least one player per game
             # We wait until someone elses joins
             self.send({"from": GAME_MASTER, "msg": MSG_AWAITING}, room=sid)
@@ -82,7 +82,7 @@ class GameMaster(socketio.Namespace):
             game_role = game.get_game_role_for_player(sid)
             mission = "This is your goal: "
             if game_role == "Director":
-                mission += "Try to navigate the avatar to your room. You can type anything that might help."
+                mission += "Try to navigate the avatar_sgg to your room. You can type anything that might help."
             else:
                 mission += "Try to navigate to the director. The director will help you to lead you to his position."
             self.send({"from": GAME_MASTER, "msg": mission}, room=sid)
@@ -127,7 +127,7 @@ class GameMaster(socketio.Namespace):
                 del self.games[sid]
 
     def on_command(self, sid, data):
-        # TODO special handling of avatar commands (changing the game state)
+        # TODO special handling of avatar_sgg commands (changing the game state)
         ...
 
     def on_message(self, sid, data):

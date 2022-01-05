@@ -1,4 +1,4 @@
-# A MapWorld Avatar Game (SoSe21 PM Vision)
+# A MapWorld Avatar Game (WS21 PM Vision)
 
 # Installation
 
@@ -26,7 +26,7 @@ Notice: Use the python version X.Y of your choice. Preferebly add this export al
 
 #### 1. Start slurk
 
-Checkout `slurk` and run slurk `local_run`. This will start slurk on `localhost:5000`. This will also create the default
+Checkout `slurk` (revision `6abfd0634f86e21aef10bea84b03ffd0ed7fc6c5`, as the rest API changed afterwards) and run slurk `local_run`. This will start slurk on `localhost:5000`. This will also create the default
 admin token.
 
 #### 2. Download and expose the dataset
