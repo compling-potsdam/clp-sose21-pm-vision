@@ -233,15 +233,18 @@ class GameMaster(socketIO_client.BaseNamespace):
         game.reset(self.map_width, self.map_height, self.map_rooms, self.map_types_to_repeat)
         for user_id in game.get_players():
             if game.is_avatar(user_id):
-                self.__send_private_message(
-                    "You are a rescue bot. A person is stuck and needs its medicine to survive. "
-                    "I'm afraid, you don't have a human detector attached, so the other one has to decide, "
-                    "if you reached the location. Therefore listen carefully to the instructions...",
-                    game.room, user_id)
+                avatar_msg =                     "You are a rescue bot. A person is stuck and needs its medicine to survive. "\
+                    "I'm afraid, you don't have a human detector attached, so the other one has to decide, " \
+                    "if you can regonize the location out of a list of room. Therefore listen carefully to the instructions..."
+                map_nodes = {k : n["instance"] for k, n in enumerate(game.mapworld.nodes)}
+                self.__send_private_message({"start_game": avatar_msg, "map_nodes": map_nodes}, game.room, user_id)
+                #self.__send_map_message(avatar_msg, game.room, user_id, "test")
+                # self.__send_private_message({"msg": avatar_msg, "map_nodes": game.mapworld.nodes},
+                #     game.room, user_id)
             else:
                 self.__send_private_message(
-                    "You are stranded, helpless. You need to direct your invisible rescue robot "
-                    "to your location or you will die. Type /done when you thin the rescue robot is at your location. "
+                    "You are stranded, helpless. You need to describe precisely your location to your invisible rescue robot "
+                    " or you will die. Type /done when you think the rescue robot is at your location. "
                     "Go -- have fun!",
                     game.room, user_id)
         # Send initial observations
@@ -263,6 +266,9 @@ class GameMaster(socketIO_client.BaseNamespace):
 
     def __send_private_message(self, message: str, room_name: str, user_id: int):
         self.emit("text", {"msg": message, "room": room_name, "receiver_id": user_id}, check_error_callback)
+
+    def __send_map_message(self, message: str, room_name: str, user_id: int, map_nodes):
+        self.emit("text", {"msg": message, "room": room_name, "receiver_id": user_id, "map_nodes": map_nodes}, check_error_callback)
 
     def __set_room_image(self, image_url: str, room_name: str, user_id: int):
         image_url = f"{self.base_image_url}/{image_url}"

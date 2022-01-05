@@ -72,13 +72,17 @@ class AvatarBot(socketIO_client.BaseNamespace):
         """
         if not self.id:
             return  # not ready yet
+        #print( "on_text_message", data)
         message = data["msg"]
         room_name = data["room"]
         user_name = data["user"]["name"]
 
         if user_name == "Game Master":
             # A. Handle new observations from game master (initially, at the end or after a move command)
-            if isinstance(message, dict) and "observation" in message:
+
+            is_dict = isinstance(message, dict)
+
+            if is_dict and "observation" in message:
                 obs = message["observation"]
                 actions = self.agent.step({"image": obs["instance"],
                                            "directions": obs["directions"],
@@ -86,6 +90,10 @@ class AvatarBot(socketIO_client.BaseNamespace):
                                            "reward": obs["reward"],
                                            "done": obs["done"]})
                 self.__perform_actions(actions, room_name)
+            elif is_dict and "map_nodes" in message:
+                print("map nodes set on agent:", message["map_nodes"])
+                self.agent.set_map_nodes(message["map_nodes"])
+
             return  # ignore other game master messages for the bot
 
         user_id = data["user"]["id"]

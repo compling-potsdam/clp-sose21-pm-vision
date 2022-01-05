@@ -57,6 +57,16 @@ class SimpleAvatar(Avatar):
     def __init__(self, image_directory):
         self.image_directory = image_directory
         self.observation = None
+        self.map_nodes = None
+
+
+    def set_map_nodes(self, map_nodes: dict):
+        """
+        Only called once, when the labyrinth is initialized.
+        :param map_nodes:
+        :return:
+        """
+        self.map_nodes = map_nodes
 
     def step(self, observation: dict) -> dict:
         print(observation)  # for debugging
