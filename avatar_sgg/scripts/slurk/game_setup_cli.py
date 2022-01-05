@@ -145,7 +145,7 @@ def setup_game(room_name, task_name, layout_name, slurk_host, slurk_port, slurk_
     task_exists = False
     tasks = slurk_api.get_tasks()
     for task in tasks:
-        if "name" in tasks.keys() and task["name"] == task_name:
+        if task["name"] == task_name:
             task_exists = True
             task_id = task["id"]
             if verbose:
