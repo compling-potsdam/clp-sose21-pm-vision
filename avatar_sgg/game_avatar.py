@@ -68,12 +68,14 @@ class SimpleAvatar(Avatar):
         if self.debug:
             print(f"The avatar will allow only {self.max_number_of_interaction} interactions with the human player.")
 
-        self.current_number_of_interaction = 0
+        self.number_of_interaction = 0
 
         self.image_directory = image_directory
         self.observation = None
         self.map_nodes = None
 
+    def __increment_number_of_interaction(self):
+        self.number_of_interaction += 1
 
     def set_map_nodes(self, map_nodes: dict):
         """
@@ -103,6 +105,7 @@ class SimpleAvatar(Avatar):
             actions["response"] = self.__generate_response(message)
 
     def __generate_response(self, message: str) -> str:
+        self.__increment_number_of_interaction()
         message = message.lower()
 
         if message.startswith("what"):
@@ -123,7 +126,7 @@ class SimpleAvatar(Avatar):
             else:
                 return "I dont know"
 
-        return "I do not understand"
+        return f"You interacted {self.number_of_interaction} times with me."
 
     def __predict_move_action(self, message: str) -> str:
         if "north" in message:

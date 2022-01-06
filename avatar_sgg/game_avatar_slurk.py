@@ -109,6 +109,7 @@ class AvatarBot(socketIO_client.BaseNamespace):
         self.__perform_actions(actions, room_name)
 
     def __perform_actions(self, actions, room_name):
+        #TODO This is where you will perform the image similarity operation on the stored gallery.
         if "move" in actions:
             command = actions["move"]
             self.__send_command(command, room_name)
