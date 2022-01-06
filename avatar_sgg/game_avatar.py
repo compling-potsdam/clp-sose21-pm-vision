@@ -50,6 +50,12 @@ class Avatar(object):
         """
         raise NotImplementedError("step")
 
+    def is_interaction_allowed(self):
+        """
+        Depends on the number of interactions allowed per game
+        :return:
+        """
+        raise NotImplementedError("is_interaction_allowed")
 
 class SimpleAvatar(Avatar):
     """
@@ -73,6 +79,13 @@ class SimpleAvatar(Avatar):
         self.image_directory = image_directory
         self.observation = None
         self.map_nodes = None
+
+    def is_interaction_allowed(self):
+        """
+        check if the avatar is still allowed to process messages.
+        :return:
+        """
+        return self.number_of_interaction < self.max_number_of_interaction
 
     def __increment_number_of_interaction(self):
         self.number_of_interaction += 1

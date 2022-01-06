@@ -30,7 +30,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         ambiguity = config["map"]["ambiguity"]
         self.room_list = config["avatar"]["room_list"]
         assert self.room_list <= 100 and self.room_list > 0 # proportion of rooms passed to the avatar
-
+        self.debug = config["debug"]
         self.include_player_room = config["avatar"]["include_player_room"]
         if config["debug"]:
             print(f"Map size:{map_size}")
@@ -84,7 +84,8 @@ class GameMaster(socketIO_client.BaseNamespace):
         game: MapWorldGame = self.games[data["room"]]
         command = data["command"]
         user = data["user"]
-
+        if self.debug:
+            print("on_command", "data", data)
         # This might be useful, when the game master re-joins the room.
         # Then the players are in the game room before the game master.
         # The players are not in the game then, but must join again.
@@ -93,9 +94,12 @@ class GameMaster(socketIO_client.BaseNamespace):
             return
 
         if game.is_avatar(user["id"]):
-            self.__step_game(command, user, game)
+            if command != "done":
+                self.__step_game(command, user, game)
+            else:
+                self.__control_game(command, user, game)
         else:
-            self.__control_game(command, user, game)
+             self.__control_game(command, user, game)
 
     def __step_game(self, command: str, user: dict, game: MapWorldGame):
         if game.is_done():

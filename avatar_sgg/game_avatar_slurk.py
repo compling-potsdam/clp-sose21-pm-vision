@@ -110,6 +110,11 @@ class AvatarBot(socketIO_client.BaseNamespace):
 
     def __perform_actions(self, actions, room_name):
         #TODO This is where you will perform the image similarity operation on the stored gallery.
+
+        #{'command': 'done', 'user': {'id': 3, 'name': 'Player 1'}, 'room': 'avatar_room'}
+        if not self.agent.is_interaction_allowed():
+            # The agent finishes the game after sufficient number of interactions
+            self.__send_done_command("guess_what", room_name)
         if "move" in actions:
             command = actions["move"]
             self.__send_command(command, room_name)
@@ -119,6 +124,9 @@ class AvatarBot(socketIO_client.BaseNamespace):
 
     def __send_message(self, message, room_name):
         self.emit("text", {'room': room_name, 'msg': message}, check_error_callback)
+
+    def __send_done_command(self, guessed_room, room_name):
+        self.emit("message_command", {'room': room_name, 'command': "done", 'guessed_room':guessed_room}, check_error_callback)
 
     def __send_command(self, command, room_name):
         self.emit("message_command", {'room': room_name, 'command': command}, check_error_callback)
