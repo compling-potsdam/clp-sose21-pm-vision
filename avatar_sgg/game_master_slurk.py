@@ -5,6 +5,7 @@ import socketIO_client
 
 from avatar_sgg.game import MapWorldGame
 from avatar_sgg.config.util import get_config
+import random
 
 def check_error_callback(success, error=None):
     if error:
@@ -27,10 +28,16 @@ class GameMaster(socketIO_client.BaseNamespace):
         map_size = config["map"]["size"]
         rooms = config["map"]["rooms"]
         ambiguity = config["map"]["ambiguity"]
+        self.room_list = config["avatar"]["room_list"]
+        assert self.room_list <= 100 and self.room_list > 0 # proportion of rooms passed to the avatar
+
+        self.include_player_room = config["avatar"]["include_player_room"]
         if config["debug"]:
             print(f"Map size:{map_size}")
             print(f"Map ambiguity:{ambiguity}")
             print(f"Map # rooms:{rooms}")
+            print(f"The avatar receives {self.room_list} % of the rooms")
+            print("Room of human player included?", self.include_player_room)
         super().__init__(io, path)
         self.id = None
         self.base_image_url = None
@@ -237,6 +244,32 @@ class GameMaster(socketIO_client.BaseNamespace):
             self.__send_private_message("I will prepare the world for you now... this might take a while.!",
                                         game.room, user["id"])
 
+    def _get_map_nodes(self, game: MapWorldGame):
+        """
+        Returns a number of rooms based on the game configuration.
+        See "include_player_room" and "room_list" in config.yaml, under  "avatar".
+        :param game:
+        :return:
+        """
+
+        player_id = 0
+        for user_id in game.get_players():
+            if not game.is_avatar(user_id):
+                player_id = user_id
+                break
+
+        player_observation = game.get_observation(player_id)
+
+        if self.include_player_room:
+            map_nodes = {k : n["instance"] for k, n in enumerate(game.mapworld.nodes)}
+        else:
+            map_nodes = {k: n["instance"] for k, n in enumerate(game.mapworld.nodes) if player_observation["instance"] != n["instance"]}
+        room_number = len(map_nodes)
+        choice = int(room_number*self.room_list/100)
+        chosen_entries = random.sample(list(map_nodes), choice)
+        map_nodes = {i: map_nodes[e] for i, e in enumerate(chosen_entries)}
+        return map_nodes
+
     def __start_game(self, game: MapWorldGame):
         game.reset(self.map_width, self.map_height, self.map_rooms, self.map_types_to_repeat)
         for user_id in game.get_players():
@@ -244,7 +277,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                 avatar_msg =                     "You are a rescue bot. A person is stuck and needs its medicine to survive. "\
                     "I'm afraid, you don't have a human detector attached, so the other one has to decide, " \
                     "if you can regonize the location out of a list of room. Therefore listen carefully to the instructions..."
-                map_nodes = {k : n["instance"] for k, n in enumerate(game.mapworld.nodes)}
+                map_nodes = self._get_map_nodes(game)
                 self.__send_private_message({"start_game": avatar_msg, "map_nodes": map_nodes}, game.room, user_id)
                 #self.__send_map_message(avatar_msg, game.room, user_id, "test")
                 # self.__send_private_message({"msg": avatar_msg, "map_nodes": game.mapworld.nodes},

@@ -9,7 +9,7 @@ game_setup:
   avatar:
     room_list: 100 #in percent, defines the number of rooms it should get from the game master
     include_player_room: True # Boolean True or False ,defines if the room where the player is stuck should be included or not
-    number_of_interaction: 3 # Defines the number of interactions a player is allowed to have
+    max_number_of_interaction: 3 # Defines the number of interactions a player is allowed to have
   debug: True # Boolean True or False, output some more messages
 
 

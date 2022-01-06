@@ -2,6 +2,8 @@
     Avatar action routines
 """
 
+from avatar_sgg.config.util import get_config
+
 DIRECTION_TO_WORD = {
     "n": "north",
     "e": "east",
@@ -55,6 +57,19 @@ class SimpleAvatar(Avatar):
     """
 
     def __init__(self, image_directory):
+
+        config = get_config()
+
+        self.debug = config["debug"]
+        config = config["avatar"]
+
+        self.max_number_of_interaction = config["max_number_of_interaction"]
+
+        if self.debug:
+            print(f"The avatar will allow only {self.max_number_of_interaction} interactions with the human player.")
+
+        self.current_number_of_interaction = 0
+
         self.image_directory = image_directory
         self.observation = None
         self.map_nodes = None
@@ -69,7 +84,8 @@ class SimpleAvatar(Avatar):
         self.map_nodes = map_nodes
 
     def step(self, observation: dict) -> dict:
-        print(observation)  # for debugging
+        if self.debug:
+            print(observation)
         actions = dict()
         if observation["image"]:
             self.__update_observation(observation)
