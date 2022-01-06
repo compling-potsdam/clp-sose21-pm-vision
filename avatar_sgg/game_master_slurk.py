@@ -4,7 +4,7 @@
 import socketIO_client
 
 from avatar_sgg.game import MapWorldGame
-
+from avatar_sgg.config.util import get_config
 
 def check_error_callback(success, error=None):
     if error:
@@ -23,15 +23,23 @@ class GameMaster(socketIO_client.BaseNamespace):
     NAME = "Game Master"
 
     def __init__(self, io, path):
+        config = get_config()
+        map_size = config["map"]["size"]
+        rooms = config["map"]["rooms"]
+        ambiguity = config["map"]["ambiguity"]
+        if config["debug"]:
+            print(f"Map size:{map_size}")
+            print(f"Map ambiguity:{ambiguity}")
+            print(f"Map # rooms:{rooms}")
         super().__init__(io, path)
         self.id = None
         self.base_image_url = None
         self.image_server_auth = None
         self.games = {}  # game by room_name
-        self.map_width = 4
-        self.map_height = 4
-        self.map_rooms = 8
-        self.map_types_to_repeat = [2, 2]
+        self.map_width = map_size
+        self.map_height = map_size
+        self.map_rooms = rooms
+        self.map_types_to_repeat = [ambiguity, ambiguity]
         self.emit("ready")  # invokes on_joined_room for the token room so we can get the user.id
 
     def set_base_image_url(self, base_image_url: str):

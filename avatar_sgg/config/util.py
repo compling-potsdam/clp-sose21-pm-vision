@@ -1,5 +1,6 @@
 import yaml
 import os
+
 def get_config():
     """
     Get the general project config
@@ -17,7 +18,7 @@ def get_config():
             conf = yaml.load(read_file, Loader=yaml.FullLoader)
     else:
         print("Server Setup: config.yaml will be used")
-    return conf
+    return conf["game_setup"]
 if __name__ == "__main__":
     print("Executing the script once should create every directories needed for proper execution.")
     conf = get_config()
