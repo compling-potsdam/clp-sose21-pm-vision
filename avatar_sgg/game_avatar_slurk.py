@@ -1,7 +1,7 @@
 """
     Slurk client as wrapper for the avatar_sgg agent to handle the slurky socketio stuff
 """
-import socketIO_client
+import socketIO_client, random
 
 from avatar_sgg.game_avatar import Avatar
 
@@ -114,7 +114,8 @@ class AvatarBot(socketIO_client.BaseNamespace):
         #{'command': 'done', 'user': {'id': 3, 'name': 'Player 1'}, 'room': 'avatar_room'}
         if not self.agent.is_interaction_allowed():
             # The agent finishes the game after sufficient number of interactions
-            self.__send_done_command("guess_what", room_name)
+            guessed_room = self.agent.get_prediction()
+            self.__send_done_command(guessed_room, room_name)
         if "move" in actions:
             command = actions["move"]
             self.__send_command(command, room_name)
@@ -126,7 +127,7 @@ class AvatarBot(socketIO_client.BaseNamespace):
         self.emit("text", {'room': room_name, 'msg': message}, check_error_callback)
 
     def __send_done_command(self, guessed_room, room_name):
-        self.emit("message_command", {'room': room_name, 'command': "done", 'guessed_room':guessed_room}, check_error_callback)
+        self.emit("message_command", {'room': room_name, 'command': {"msg":"done", 'guessed_room': guessed_room }}, check_error_callback)
 
     def __send_command(self, command, room_name):
         self.emit("message_command", {'room': room_name, 'command': command}, check_error_callback)

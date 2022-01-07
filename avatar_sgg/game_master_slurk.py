@@ -32,12 +32,13 @@ class GameMaster(socketIO_client.BaseNamespace):
         assert self.room_list <= 100 and self.room_list > 0 # proportion of rooms passed to the avatar
         self.debug = config["debug"]
         self.include_player_room = config["avatar"]["include_player_room"]
-        if config["debug"]:
-            print(f"Map size:{map_size}")
-            print(f"Map ambiguity:{ambiguity}")
-            print(f"Map # rooms:{rooms}")
-            print(f"The avatar receives {self.room_list} % of the rooms")
-            print("Room of human player included?", self.include_player_room)
+
+        self.__print(f"Map size:{map_size}")
+        self.__print(f"Map ambiguity:{ambiguity}")
+        self.__print(f"Map # rooms:{rooms}")
+        self.__print(f"The avatar receives {self.room_list} % of the rooms")
+        self.__print("Room of human player included?", self.include_player_room )
+
         super().__init__(io, path)
         self.id = None
         self.base_image_url = None
@@ -48,6 +49,16 @@ class GameMaster(socketIO_client.BaseNamespace):
         self.map_rooms = rooms
         self.map_types_to_repeat = [ambiguity, ambiguity]
         self.emit("ready")  # invokes on_joined_room for the token room so we can get the user.id
+
+    def __print(self, *message):
+        """
+        Print your message when debug is true
+        :param self:
+        :param message:
+        :return:
+        """
+        if self.debug:
+            print(message)
 
     def set_base_image_url(self, base_image_url: str):
         self.base_image_url = base_image_url
@@ -84,8 +95,8 @@ class GameMaster(socketIO_client.BaseNamespace):
         game: MapWorldGame = self.games[data["room"]]
         command = data["command"]
         user = data["user"]
-        if self.debug:
-            print("on_command", "data", data)
+
+        self.__print("on_command", "data", data)
         # This might be useful, when the game master re-joins the room.
         # Then the players are in the game room before the game master.
         # The players are not in the game then, but must join again.
@@ -94,7 +105,7 @@ class GameMaster(socketIO_client.BaseNamespace):
             return
 
         if game.is_avatar(user["id"]):
-            if command != "done":
+            if type(command) is not dict:
                 self.__step_game(command, user, game)
             else:
                 self.__control_game(command, user, game)
@@ -117,26 +128,41 @@ class GameMaster(socketIO_client.BaseNamespace):
         """
             Actions performed by the player.
         """
-        if command == "done":
-            self.__end_game(user, game)
-        elif command == "start":
-            self.__start_game_if_possible(user, game)
-        elif command == "look":
-            self.__observe_if_possible(user, game)
-        elif command.startswith("set_map"):
-            try:
-                self.__set_map(command)
+        if not game.is_avatar(user["id"]):
+            if command == "done":
+                self.__end_game(user, game)
+            elif command == "start":
+                self.__start_game_if_possible(user, game)
+            elif command == "look":
+                self.__observe_if_possible(user, game)
+            elif command.startswith("set_map"):
+                try:
+                    self.__set_map(command)
+                    self.__send_private_message(
+                        "Set map to %s,%s,%s" % (self.map_width, self.map_height, self.map_rooms),
+                        game.room, user["id"])
+                except Exception as e:  # noqa
+                    self.__send_private_message(
+                        "Wrong command '%s'. Should be like '/set_map:<width>,<height>,<rooms>'" % command,
+                        game.room, user["id"])
+            else:
                 self.__send_private_message(
-                    "Set map to %s,%s,%s" % (self.map_width, self.map_height, self.map_rooms),
-                    game.room, user["id"])
-            except Exception as e:  # noqa
-                self.__send_private_message(
-                    "Wrong command '%s'. Should be like '/set_map:<width>,<height>,<rooms>'" % command,
+                    "You cannot use the command '/%s'. You may use '/set_map', '/done', '/start' or '/rejoin'." % command,
                     game.room, user["id"])
         else:
-            self.__send_private_message(
-                "You cannot use the command '/%s'. You may use '/set_map', '/done', '/start' or '/rejoin'." % command,
-                game.room, user["id"])
+            if type(command) is dict and command["msg"] == "done":
+                player_id = 0
+                for user_id in game.get_players():
+                    if not game.is_avatar(user_id):
+                        player_id = user_id
+                        break
+
+                player_observation = game.get_observation(player_id)
+                player_instance = player_observation["instance"]
+                game_success = player_instance == command["guessed_room"]
+                self.__print("Guessed room", command["guessed_room"])
+                self.__end_avatar_game(user, game, game_success)
+
 
     def __set_map(self, setting: str):
         """
@@ -230,6 +256,33 @@ class GameMaster(socketIO_client.BaseNamespace):
         game.set_done()
         self.__send_observations(game)  # send final observations (with success or failure reward)
 
+    def __end_avatar_game(self, user: dict, game: MapWorldGame, game_success : bool):
+        if game.is_done():
+            self.__send_private_message(
+                "The game already ended. Type /start if you want to play again.", game.room, user["id"])
+            return
+        user_ids = game.get_players()
+        for user_id in user_ids:
+            if game_success:
+                if game.is_avatar(user_id):
+                    self.__send_private_message(
+                        "You guessed the players location. Hurray!"
+                        "Wait for the player to /start the game.", game.room, user_id)
+                else:
+                    self.__send_private_message(
+                        "Congrats, you'll survive! The rescue robot identified your location and will reach it with the medicine. "
+                        "Type /start if you want to get lost again.", game.room, user_id)
+            else:
+                if game.is_avatar(user_id):
+                    self.__send_private_message(
+                        "The player will die horribly, because you were not able to identify his location."
+                        "Wait for the player to /start the game.", game.room, user_id)
+                else:
+                    self.__send_private_message("The rescue robot was not able to identify your location. You die horribly. Sorry. "
+                                                "Type /start if you want to get lost again.", game.room, user_id)
+        game.set_done()
+        self.__send_observations(game)
+
     def __observe_if_possible(self, user: dict, game: MapWorldGame):
         if game.is_ready():
             self.__send_observations(game)
@@ -247,6 +300,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         else:
             self.__send_private_message("I will prepare the world for you now... this might take a while.!",
                                         game.room, user["id"])
+
 
     def _get_map_nodes(self, game: MapWorldGame):
         """
@@ -271,7 +325,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         room_number = len(map_nodes)
         choice = int(room_number*self.room_list/100)
         chosen_entries = random.sample(list(map_nodes), choice)
-        map_nodes = {i: map_nodes[e] for i, e in enumerate(chosen_entries)}
+        map_nodes = {int(i): map_nodes[e] for i, e in enumerate(chosen_entries)}
         return map_nodes
 
     def __start_game(self, game: MapWorldGame):

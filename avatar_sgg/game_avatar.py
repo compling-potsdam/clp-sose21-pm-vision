@@ -3,6 +3,8 @@
 """
 
 from avatar_sgg.config.util import get_config
+import random
+
 
 DIRECTION_TO_WORD = {
     "n": "north",
@@ -57,6 +59,13 @@ class Avatar(object):
         """
         raise NotImplementedError("is_interaction_allowed")
 
+    def get_prediction(self):
+        """
+        Should return the room identified by the avatar
+        :return:
+        """
+        raise NotImplementedError("get_prediction")
+
 class SimpleAvatar(Avatar):
     """
         The simple avatar_sgg is only repeating the observations.
@@ -86,6 +95,17 @@ class SimpleAvatar(Avatar):
         :return:
         """
         return self.number_of_interaction < self.max_number_of_interaction
+
+
+    def get_prediction(self):
+        """
+        Should return the room identified by the avatar
+        :return:
+        """
+        #TODO Replace it by the results of the models in use.
+        pass
+        choice =  random.choice(list(self.map_nodes.items()))
+        return choice
 
     def __increment_number_of_interaction(self):
         self.number_of_interaction += 1
