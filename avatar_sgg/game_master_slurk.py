@@ -281,7 +281,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                     self.__send_private_message("The rescue robot was not able to identify your location. You die horribly. Sorry. "
                                                 "Type /start if you want to get lost again.", game.room, user_id)
         game.set_done()
-        self.__send_observations(game)
+
 
     def __observe_if_possible(self, user: dict, game: MapWorldGame):
         if game.is_ready():
