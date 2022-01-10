@@ -334,7 +334,7 @@ class GameMaster(socketIO_client.BaseNamespace):
             if game.is_avatar(user_id):
                 avatar_msg =                     "You are a rescue bot. A person is stuck and needs its medicine to survive. "\
                     "I'm afraid, you don't have a human detector attached, so the other one has to decide, " \
-                    "if you can regonize the location out of a list of room. Therefore listen carefully to the instructions..."
+                    "if you can recognize the location out of a list of room. Therefore listen carefully to the instructions..."
                 map_nodes = self._get_map_nodes(game)
                 self.__send_private_message({"start_game": avatar_msg, "map_nodes": map_nodes}, game.room, user_id)
                 #self.__send_map_message(avatar_msg, game.room, user_id, "test")
