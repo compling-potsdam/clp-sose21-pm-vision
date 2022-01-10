@@ -73,7 +73,7 @@ class SimpleAvatar(Avatar):
 
     def __init__(self, image_directory):
 
-        config = get_config()
+        config = get_config()["game_setup"]
 
         self.debug = config["debug"]
         config = config["avatar"]

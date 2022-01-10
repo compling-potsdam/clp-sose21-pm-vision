@@ -4,6 +4,8 @@ import os
 def get_config():
     """
     Get the general project config
+    important dictionary keys:
+    "game_setup", ""ade20k" for the location of the dataset with captions
     :return:
     """
     config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yaml")
@@ -18,9 +20,9 @@ def get_config():
             conf = yaml.load(read_file, Loader=yaml.FullLoader)
     else:
         print("Server Setup: config.yaml will be used")
-    return conf["game_setup"]
+    return conf
 if __name__ == "__main__":
-    print("Executing the script once should create every directories needed for proper execution.")
+    print("Start")
     conf = get_config()
 
     print("Done")

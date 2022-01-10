@@ -24,7 +24,7 @@ class GameMaster(socketIO_client.BaseNamespace):
     NAME = "Game Master"
 
     def __init__(self, io, path):
-        config = get_config()
+        config = get_config()["game_setup"]
         map_size = config["map"]["size"]
         rooms = config["map"]["rooms"]
         ambiguity = config["map"]["ambiguity"]
