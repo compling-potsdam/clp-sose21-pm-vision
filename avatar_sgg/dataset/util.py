@@ -38,7 +38,7 @@ def get_ade20k_caption_annotations():
     return image_path_to_caption
 
 
-def get_ade20k_split(test_proportion: int = 15):
+def get_ade20k_split(test_proportion: int = 15, test_size: int = 10):
     """
     Returns train, dev and test split.
     Dev has only one image.
@@ -52,8 +52,8 @@ def get_ade20k_split(test_proportion: int = 15):
     random.seed(1)
     keys = list(captions.keys())
     random.shuffle(keys)
-    start_idx = 1
-    dev = {keys[0]: captions[keys[0]]}
+    start_idx = test_size
+    dev = {k: captions[k] for k in keys[:test_size]}
     size = len(keys[start_idx:])
     test_idx = int(test_proportion * size / 100)
     test = {k: captions[k] for k in keys[start_idx:test_idx]}
