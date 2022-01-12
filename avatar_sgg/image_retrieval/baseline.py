@@ -1,5 +1,5 @@
 from avatar_sgg.dataset.util import get_ade20k_split
-from avatar_sgg.image_retrieval.evaluation import compute_recall, calculate_normalized_cosine_similarity
+from avatar_sgg.image_retrieval.evaluation import compute_recall, calculate_normalized_cosine_similarity, compute_recall_johnson_feiefei
 
 import numpy as np
 import gensim
@@ -78,7 +78,12 @@ def compute_average_similarity(ade20k_split):
         else:
             stacked_vectors = torch.cat((stacked_vectors, vectors), dim=0)
     similarity = calculate_normalized_cosine_similarity(stacked_vectors)
-    compute_recall(similarity)
+    recall_val, mean_rank = compute_recall_johnson_feiefei(similarity)
+
+    for k in recall_val.keys():
+        print(f"Recall @ {k}: {recall_val[k]}")
+    print(f"Mean Rank{mean_rank}")
+
 
     return similarity.diag().mean()
 
