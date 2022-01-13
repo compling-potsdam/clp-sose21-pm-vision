@@ -62,8 +62,7 @@ class Vectorizer:
 
         self.vectors = vectors
 
-
-def compute_average_similarity(ade20k_split):
+def vectorize_captions(ade20k_split):
     vectorizer = Vectorizer()
     stacked_vectors = None
 
@@ -77,6 +76,10 @@ def compute_average_similarity(ade20k_split):
             stacked_vectors = vectors
         else:
             stacked_vectors = torch.cat((stacked_vectors, vectors), dim=0)
+
+    return stacked_vectors
+def compute_average_similarity(ade20k_split):
+    stacked_vectors = vectorize_captions(ade20k_split)
     similarity = calculate_normalized_cosine_similarity(stacked_vectors)
     recall_val, mean_rank = compute_recall_johnson_feiefei(similarity)
 
@@ -91,6 +94,6 @@ def compute_average_similarity(ade20k_split):
 if __name__ == "__main__":
     print("Start")
     train, dev, test = get_ade20k_split()
-    average_distance = compute_average_similarity(dev)
+    average_distance = compute_average_similarity(test)
     print("average distance", average_distance)
     print("Done")

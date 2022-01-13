@@ -43,6 +43,7 @@ def compute_recall_johnson_feiefei(similarity, threshold=None, recall_at: list =
 
     if threshold:
         threshold_mask = (values >= threshold)
+        # Due to the threshold, you might have less entries returned than number_entries
         entry_ranks, gold_ranks = torch.logical_and((ranks == gold_recommendations), threshold_mask).nonzero(as_tuple=True)
 
     recall_val = {k: ((gold_ranks < k).sum().type(torch.float) / number_entries) for k in recall_at if
