@@ -1,5 +1,5 @@
-from avatar_sgg.dataset.util import get_ade20k_split
-from avatar_sgg.image_retrieval.evaluation import compute_recall, calculate_normalized_cosine_similarity, compute_recall_johnson_feiefei
+from avatar_sgg.dataset.util import get_ade20k_split, get_categories
+from avatar_sgg.image_retrieval.evaluation import compute_recall,compute_recall_on_category, calculate_normalized_cosine_similarity, compute_recall_johnson_feiefei
 
 import numpy as np
 import gensim
@@ -67,7 +67,7 @@ def vectorize_captions(ade20k_split):
     stacked_vectors = None
 
     for image in ade20k_split:
-        vectorizer.bert(ade20k_split[image])
+        vectorizer.bert(ade20k_split[image]["caption"])
         vectors = vectorizer.vectors
         # adds a dimension at position 0; dimension 0 is used to "list the entries"
         if len(vectors.shape) < 3:
@@ -80,8 +80,10 @@ def vectorize_captions(ade20k_split):
     return stacked_vectors
 def compute_average_similarity(ade20k_split):
     stacked_vectors = vectorize_captions(ade20k_split)
+    category = get_categories(ade20k_split)
+
     similarity = calculate_normalized_cosine_similarity(stacked_vectors)
-    recall_val, mean_rank = compute_recall_johnson_feiefei(similarity)
+    recall_val, mean_rank = compute_recall_on_category(similarity, category)
 
     for k in recall_val.keys():
         print(f"Recall @ {k}: {recall_val[k]}")
@@ -94,6 +96,6 @@ def compute_average_similarity(ade20k_split):
 if __name__ == "__main__":
     print("Start")
     train, dev, test = get_ade20k_split()
-    average_distance = compute_average_similarity(test)
+    average_distance = compute_average_similarity(dev)
     print("average distance", average_distance)
     print("Done")
