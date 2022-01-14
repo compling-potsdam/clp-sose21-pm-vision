@@ -81,17 +81,18 @@ def compute_recall_on_category(similarity, category, threshold=None, recall_at: 
     values, ranks = torch.topk(similarity, number_entries)
     gold_recommendations = torch.arange(0, number_entries, dtype=ranks.dtype, device=ranks.device).unsqueeze(-1)
     gold_category_recommendations = torch.tensor(vectorized_category, dtype=ranks.dtype, device=ranks.device)
-    gold_category_ranks = torch.gather(gold_category_recommendations.repeat((number_entries,1)), 1, ranks)
+    category_ranks = torch.gather(gold_category_recommendations.repeat((number_entries,1)), 1, ranks)
     # dimension 0 is the entry dimension, dimension 1 is the ranking for a given entry
     entry_ranks, gold_ranks = (ranks == gold_recommendations).nonzero(as_tuple=True)
     mean_rank = (gold_ranks + 1).type(torch.float).mean()
-
+    category_mask = (gold_category_recommendations == category_ranks)
     if threshold:
         threshold_mask = (values >= threshold)
         # Due to the threshold, you might have less entries returned than number_entries
-        entry_ranks, gold_category_ranks = torch.logical_and((gold_category_ranks == gold_category_recommendations), threshold_mask).nonzero(as_tuple=True)
-    #TODO Still broken
-    recall_val = {k: ((gold_category_ranks < k).sum().type(torch.float) / (number_entries*k)) for k in recall_at if
+        category_mask = torch.logical_and(category_mask, threshold_mask)
+
+    #TODO Check if that really works
+    recall_val = {k: (torch.where(category_mask[:,:k].sum(dim=1) <= k, category_mask[:,:k].sum(dim=1), torch.ones_like(category_mask)*k).type(torch.float).sum() / (number_entries*k)) for k in recall_at if
                   k <= number_entries}
 
     return recall_val, mean_rank
