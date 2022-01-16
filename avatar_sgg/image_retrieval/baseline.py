@@ -1,5 +1,5 @@
 from avatar_sgg.dataset.util import get_ade20k_split, get_categories
-from avatar_sgg.image_retrieval.evaluation import compute_recall,compute_recall_on_category, calculate_normalized_cosine_similarity, compute_recall_johnson_feiefei
+from avatar_sgg.image_retrieval.evaluation import compute_recall_on_category, calculate_normalized_cosine_similarity, compute_recall_johnson_feiefei
 
 import numpy as np
 import gensim
@@ -96,6 +96,6 @@ def compute_average_similarity(ade20k_split):
 if __name__ == "__main__":
     print("Start")
     train, dev, test = get_ade20k_split()
-    average_distance = compute_average_similarity(test)
+    average_distance = compute_average_similarity(dev)
     print("average distance", average_distance)
     print("Done")
