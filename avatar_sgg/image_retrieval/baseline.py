@@ -96,6 +96,6 @@ def compute_average_similarity(ade20k_split):
 if __name__ == "__main__":
     print("Start")
     train, dev, test = get_ade20k_split()
-    average_distance = compute_average_similarity(dev)
+    average_distance = compute_average_similarity(test)
     print("average distance", average_distance)
     print("Done")
