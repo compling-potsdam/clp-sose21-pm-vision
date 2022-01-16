@@ -77,7 +77,6 @@ def compute_recall_on_category(similarity, category, threshold=None, recall_at: 
     for k, v in category.items():
         category_to_entry_lookup[v].append(k)
 
-    idx_to_category = {i: c for i, c in enumerate(sorted(category_to_entry_lookup.keys()))}
     category_to_idx = {c: i for i, c in enumerate(sorted(category_to_entry_lookup.keys()))}
     vectorized_category = [category_to_idx[category[k]] for k in sorted(category.keys())]
 
@@ -103,15 +102,3 @@ def compute_recall_on_category(similarity, category, threshold=None, recall_at: 
                   k <= number_entries}
 
     return recall_val, mean_rank
-
-
-def compute_recall(similarity, threshold=None, recall_at: list = [1, 2, 5, 8, 10, 20]):
-    if not threshold:
-        # The mean of the diagonal is the criteria to define something "meaningful"
-        pred_rank = (similarity >= similarity.diag().mean().view(-1, 1)).sum(-1)
-    else:
-        pred_rank = (similarity >= (torch.ones_like(similarity.diag()) * threshold).view(-1, 1)).sum(-1)
-    num_sample = pred_rank.shape[0]
-    for k in recall_at:
-        if k <= num_sample:
-            print('Recall @ %d: %.4f; ' % (k, float((pred_rank < k).sum()) / num_sample))
