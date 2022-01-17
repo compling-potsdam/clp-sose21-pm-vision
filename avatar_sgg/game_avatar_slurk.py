@@ -1,7 +1,7 @@
 """
     Slurk client as wrapper for the avatar_sgg agent to handle the slurky socketio stuff
 """
-import socketIO_client
+import socketIO_client, random
 
 from avatar_sgg.game_avatar import Avatar
 
@@ -72,13 +72,17 @@ class AvatarBot(socketIO_client.BaseNamespace):
         """
         if not self.id:
             return  # not ready yet
+        #print( "on_text_message", data)
         message = data["msg"]
         room_name = data["room"]
         user_name = data["user"]["name"]
 
         if user_name == "Game Master":
             # A. Handle new observations from game master (initially, at the end or after a move command)
-            if isinstance(message, dict) and "observation" in message:
+
+            is_dict = isinstance(message, dict)
+
+            if is_dict and "observation" in message:
                 obs = message["observation"]
                 actions = self.agent.step({"image": obs["instance"],
                                            "directions": obs["directions"],
@@ -86,6 +90,10 @@ class AvatarBot(socketIO_client.BaseNamespace):
                                            "reward": obs["reward"],
                                            "done": obs["done"]})
                 self.__perform_actions(actions, room_name)
+            elif is_dict and "map_nodes" in message:
+                print("map nodes set on agent:", message["map_nodes"])
+                self.agent.set_map_nodes(message["map_nodes"])
+
             return  # ignore other game master messages for the bot
 
         user_id = data["user"]["id"]
@@ -101,6 +109,13 @@ class AvatarBot(socketIO_client.BaseNamespace):
         self.__perform_actions(actions, room_name)
 
     def __perform_actions(self, actions, room_name):
+        #TODO This is where you will perform the image similarity operation on the stored gallery.
+
+        #{'command': 'done', 'user': {'id': 3, 'name': 'Player 1'}, 'room': 'avatar_room'}
+        if not self.agent.is_interaction_allowed():
+            # The agent finishes the game after sufficient number of interactions
+            guessed_room = self.agent.get_prediction()
+            self.__send_done_command(guessed_room, room_name)
         if "move" in actions:
             command = actions["move"]
             self.__send_command(command, room_name)
@@ -110,6 +125,9 @@ class AvatarBot(socketIO_client.BaseNamespace):
 
     def __send_message(self, message, room_name):
         self.emit("text", {'room': room_name, 'msg': message}, check_error_callback)
+
+    def __send_done_command(self, guessed_room, room_name):
+        self.emit("message_command", {'room': room_name, 'command': {"msg":"done", 'guessed_room': guessed_room }}, check_error_callback)
 
     def __send_command(self, command, room_name):
         self.emit("message_command", {'room': room_name, 'command': command}, check_error_callback)

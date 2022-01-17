@@ -2,6 +2,10 @@
     Avatar action routines
 """
 
+from avatar_sgg.config.util import get_config
+import random
+
+
 DIRECTION_TO_WORD = {
     "n": "north",
     "e": "east",
@@ -48,6 +52,19 @@ class Avatar(object):
         """
         raise NotImplementedError("step")
 
+    def is_interaction_allowed(self):
+        """
+        Depends on the number of interactions allowed per game
+        :return:
+        """
+        raise NotImplementedError("is_interaction_allowed")
+
+    def get_prediction(self):
+        """
+        Should return the room identified by the avatar
+        :return:
+        """
+        raise NotImplementedError("get_prediction")
 
 class SimpleAvatar(Avatar):
     """
@@ -55,11 +72,55 @@ class SimpleAvatar(Avatar):
     """
 
     def __init__(self, image_directory):
+
+        config = get_config()["game_setup"]
+
+        self.debug = config["debug"]
+        config = config["avatar"]
+
+        self.max_number_of_interaction = config["max_number_of_interaction"]
+
+        if self.debug:
+            print(f"The avatar will allow only {self.max_number_of_interaction} interactions with the human player.")
+
+        self.number_of_interaction = 0
+
         self.image_directory = image_directory
         self.observation = None
+        self.map_nodes = None
+
+    def is_interaction_allowed(self):
+        """
+        check if the avatar is still allowed to process messages.
+        :return:
+        """
+        return self.number_of_interaction < self.max_number_of_interaction
+
+
+    def get_prediction(self):
+        """
+        Should return the room identified by the avatar
+        :return:
+        """
+        #TODO Replace it by the results of the models in use.
+        pass
+        choice =  random.choice(list(self.map_nodes.items()))
+        return choice
+
+    def __increment_number_of_interaction(self):
+        self.number_of_interaction += 1
+
+    def set_map_nodes(self, map_nodes: dict):
+        """
+        Only called once, when the labyrinth is initialized.
+        :param map_nodes:
+        :return:
+        """
+        self.map_nodes = map_nodes
 
     def step(self, observation: dict) -> dict:
-        print(observation)  # for debugging
+        if self.debug:
+            print(observation)
         actions = dict()
         if observation["image"]:
             self.__update_observation(observation)
@@ -77,6 +138,7 @@ class SimpleAvatar(Avatar):
             actions["response"] = self.__generate_response(message)
 
     def __generate_response(self, message: str) -> str:
+        self.__increment_number_of_interaction()
         message = message.lower()
 
         if message.startswith("what"):
@@ -97,7 +159,7 @@ class SimpleAvatar(Avatar):
             else:
                 return "I dont know"
 
-        return "I do not understand"
+        return f"You interacted {self.number_of_interaction} times with me."
 
     def __predict_move_action(self, message: str) -> str:
         if "north" in message:

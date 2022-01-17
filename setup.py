@@ -77,7 +77,7 @@ setup(
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     package_data={
-        'avatar': ["resources/*.json"],
+        'avatar_sgg': ["resources/*.json", "config/*.yaml"],
     },
 
     # data_files=[('project/configuration', ['project/configuration/configuration.ini.template'])],
