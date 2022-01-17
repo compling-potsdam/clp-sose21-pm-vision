@@ -57,11 +57,13 @@ def compute_recall_johnson_feiefei(similarity, threshold=None, recall_at: list =
 
 def compute_recall_on_category(similarity, category, threshold=None, recall_at: list = [1, 2, 5, 8, 10, 20]):
     """
-    This is how I understood recall computation from  https://openaccess.thecvf.com/content_cvpr_2015/papers/Johnson_Image_Retrieval_Using_2015_CVPR_paper.pdf, p.6
     For each image, we know what is the expected best result (gold image) for a given text query.
-    If we consider the best k results as in @K metrics, we have to check if our image is included in the top k.
-    We can then compute a proportion of times our system includes the true image and also calculate the mean rank recomandation
-    of the gold image.
+    That gives us a gold category annotation for the current image. We can find out how many images with this particular
+    category are in the current comparison. The recall is the proportion of the number of images from this particular
+    category in the top k recomendation divided by k. If k is superior to the sum of all images of this given category
+    in the current comparison, k is replaced by this sum. For example, if we are looking for an image of a bathroom,
+    if we have only 3 bathrooms out of 10 images, and if we are able to retrieve all bathrooms in a recall @k = 5,
+    we compute 3 bathrooms out of 3 bathrooms instead of 3 bathrooms out of 5 recommendations.
 
     :param similarity:
     :param threshold:
@@ -97,8 +99,16 @@ def compute_recall_on_category(similarity, category, threshold=None, recall_at: 
         category_mask = torch.logical_and(category_mask, threshold_mask)
 
     target_dim = 1
-    recall_val = {k: (category_mask[:, :k].sum(dim=target_dim).sum().type(torch.float) / (number_entries * k)) for k in
-                  recall_at if
-                  k <= number_entries}
+    entries_tensor = torch.ones_like(gold_category_recommendations).type(torch.float).squeeze()
+    sub_total_gold_category = category_mask.sum(dim=target_dim).type(torch.float)
+    # this lambda counts the number of gold category per entry in the top k
+    numerator = lambda k: category_mask[:, :k].sum(dim=target_dim).sum().type(torch.float)
+
+    # this lambda counts the number of possible gold category per entry. If the number of possible gold category is
+    # superior to k, then the number is defaulted to k.
+    denominator = lambda k: torch.where(sub_total_gold_category <= entries_tensor * k, sub_total_gold_category,
+                                        entries_tensor * k).sum()
+
+    recall_val = {k: (numerator(k) / denominator(k)) for k in recall_at if k <= number_entries}
 
     return recall_val, mean_rank
