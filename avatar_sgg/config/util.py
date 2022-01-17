@@ -21,6 +21,7 @@ def get_config():
     else:
         print("Server Setup: config.yaml will be used")
     return conf
+#Test
 if __name__ == "__main__":
     print("Start")
     conf = get_config()
