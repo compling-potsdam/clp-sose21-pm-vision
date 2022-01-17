@@ -4,6 +4,11 @@ ade20k:
   root_dir: "/media/rafi/Samsung_T5/_DATASETS/ADE20K/"
   caption_dir: "/media/rafi/Samsung_T5/_DATASETS/ADE20K/image-description-sequences/data/"
 
+captioning:
+  catr:
+    cuda_device: "cuda:0"
+    beam_size: 1
+
 game_setup:
   game_logs_dir: "/home/users/alatif/project/sose21-pm-language-and-vision-g1/data/game_logs/"
   map:
