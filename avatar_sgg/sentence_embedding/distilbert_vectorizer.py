@@ -24,6 +24,18 @@ class Vectorizer:
         self.model = model.to(self.device)
         self.to_numpy_array = to_numpy_array
 
+    def encode(self, sentences, convert_to_tensor= True):
+        """
+        Returns the embedding reoresentation of the sentence. The second parameter is only used,
+        because we want to be able to switch to the  Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks.
+        model (https://www.sbert.net/)
+        :param sentences:
+        :param convert_to_tensor:
+        :return:
+        """
+        self.bert(sentences)
+        return self.vectors
+
     def bert(self, sentences):
         tokenized = list(map(lambda x: self.tokenizer.encode(x, add_special_tokens=True), sentences))
 
@@ -60,19 +72,3 @@ class Vectorizer:
         self.vectors = vectors
 
 
-def vectorize_captions(ade20k_split):
-    vectorizer = Vectorizer()
-    stacked_vectors = None
-
-    for image in ade20k_split:
-        vectorizer.bert(ade20k_split[image]["caption"])
-        vectors = vectorizer.vectors
-        # adds a dimension at position 0; dimension 0 is used to "list the entries"
-        if len(vectors.shape) < 3:
-            vectors = vectors.unsqueeze(0)
-        if stacked_vectors is None:
-            stacked_vectors = vectors
-        else:
-            stacked_vectors = torch.cat((stacked_vectors, vectors), dim=0)
-
-    return stacked_vectors

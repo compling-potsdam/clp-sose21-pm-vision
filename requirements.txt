@@ -83,6 +83,10 @@ python_socketio == 5.5.0
 # clp-sose21-pm-vision/build/lib/avatar_sgg/scripts/slurk/game_setup_cli.py: 5
 requests == 2.25.1
 
+# clp-sose21-pm-vision/avatar_sgg/image_retrieval/baseline.py: 5
+# clp-sose21-pm-vision/avatar_sgg/sentence_embedding/test.py: 1
+sentence_transformers == 2.1.0
+
 # clp-sose21-pm-vision/setup.py: 6
 setuptools == 58.0.4
 
@@ -113,14 +117,15 @@ socketIO_client == 0.7.2
 # clp-sose21-pm-vision/avatar_sgg/notebooks/.ipynb_checkpoints/visualize-checkpoint.ipynb: 4
 # clp-sose21-pm-vision/avatar_sgg/notebooks/visualize.ipynb: 4
 # clp-sose21-pm-vision/avatar_sgg/sentence_embedding/distilbert_vectorizer.py: 3
+# clp-sose21-pm-vision/avatar_sgg/sentence_embedding/util.py: 1
 # clp-sose21-pm-vision/build/lib/avatar_sgg/image_retrieval/baseline.py: 6
 # clp-sose21-pm-vision/build/lib/avatar_sgg/image_retrieval/evaluation.py: 1
 # clp-sose21-pm-vision/test.py: 2
-torch == 1.5.1+cu101
+torch == 1.6.0+cu101
 
 # clp-sose21-pm-vision/avatar_sgg/captioning/catr/datasets/coco.py: 2,3
 # clp-sose21-pm-vision/avatar_sgg/captioning/catr/model/backbone.py: 6,8
-torchvision == 0.6.1+cu101
+torchvision == 0.7.0+cu101
 
 # clp-sose21-pm-vision/avatar_sgg/captioning/catr/engine.py: 6
 tqdm == 4.62.3

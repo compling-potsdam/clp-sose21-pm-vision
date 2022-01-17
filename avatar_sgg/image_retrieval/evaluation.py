@@ -22,7 +22,7 @@ def calculate_normalized_cosine_similarity(input):
     return similarity
 
 
-def compute_recall_johnson_feiefei(similarity, threshold=None, recall_at: list = [1, 2, 5, 8, 10, 20]):
+def compute_recall_johnson_feiefei(similarity, threshold=None, recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
     """
     This is how I understood recall computation from  https://openaccess.thecvf.com/content_cvpr_2015/papers/Johnson_Image_Retrieval_Using_2015_CVPR_paper.pdf, p.6
     For each image, we know what is the expected best result (gold image) for a given text query.
@@ -55,7 +55,7 @@ def compute_recall_johnson_feiefei(similarity, threshold=None, recall_at: list =
     return recall_val, mean_rank
 
 
-def compute_recall_on_category(similarity, category, threshold=None, recall_at: list = [1, 2, 5, 8, 10, 20]):
+def compute_recall_on_category(similarity, category, threshold=None, recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
     """
     For each image, we know what is the expected best result (gold image) for a given text query.
     That gives us a gold category annotation for the current image. We can find out how many images with this particular
