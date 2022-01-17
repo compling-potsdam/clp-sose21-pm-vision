@@ -93,6 +93,7 @@ def compute_recall_on_category(similarity, category, threshold=None, recall_at: 
     # Unsqueeze here to make each value in gold_category_recommendations compared against all rows in category ranks
     gold_category_recommendations = gold_category_recommendations.unsqueeze(-1)
     category_mask = (gold_category_recommendations == category_ranks)
+    category_mask_unchanged_by_threshold = (gold_category_recommendations == category_ranks)
     if threshold:
         threshold_mask = (values >= threshold)
         # Due to the threshold, you might have less entries returned than number_entries
@@ -100,7 +101,7 @@ def compute_recall_on_category(similarity, category, threshold=None, recall_at: 
 
     target_dim = 1
     entries_tensor = torch.ones_like(gold_category_recommendations).type(torch.float).squeeze()
-    sub_total_gold_category = category_mask.sum(dim=target_dim).type(torch.float)
+    sub_total_gold_category = category_mask_unchanged_by_threshold.sum(dim=target_dim).type(torch.float)
     # this lambda counts the number of gold category per entry in the top k
     numerator = lambda k: category_mask[:, :k].sum(dim=target_dim).sum().type(torch.float)
 
