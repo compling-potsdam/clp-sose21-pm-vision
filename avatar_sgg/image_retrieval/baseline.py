@@ -24,7 +24,7 @@ def compute_average_similarity(ade20k_split, threshold=None):
 
 if __name__ == "__main__":
     print("Start")
-    _, _, test = get_ade20k_split()
-    average_distance = compute_average_similarity(test, 0.7)
+    train, dev, test = get_ade20k_split()
+    average_distance = compute_average_similarity(dev)
     print("average distance", average_distance)
     print("Done")
