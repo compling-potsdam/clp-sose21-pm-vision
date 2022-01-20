@@ -9,6 +9,8 @@ captioning:
     cuda_device: "cuda:0"
     beam_size: 1
 
+output_dir: "/home/rafi/PycharmProjects/clp-sose21-pm-vision/results"
+
 game_setup:
   game_logs_dir: "/home/users/alatif/project/sose21-pm-language-and-vision-g1/data/game_logs/"
   map:

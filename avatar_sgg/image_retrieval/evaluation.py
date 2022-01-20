@@ -27,14 +27,15 @@ def calculate_normalized_cosine_similarity(input):
 
 def compute_recall_johnson_feiefei(similarity, threshold, category,  recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
     """
-    This is how I understood recall computation from  https://openaccess.thecvf.com/content_cvpr_2015/papers/Johnson_Image_Retrieval_Using_2015_CVPR_paper.pdf, p.6
-    For each image, we know what is the expected best result (gold image) for a given text query.
-    If we consider the best k results as in @K metrics, we have to check if our image is included in the top k.
-    We can then compute a proportion of times our system includes the true image and also calculate the mean rank recomandation
-    of the gold image.
+        This is how I understood recall computation from  https://openaccess.thecvf.com/content_cvpr_2015/papers/Johnson_Image_Retrieval_Using_2015_CVPR_paper.pdf, p.6
+        For each image, we know what is the expected best result (gold image) for a given text query.
+        If we consider the best k results as in @K metrics, we have to check if our image is included in the top k.
+        We can then compute a proportion of times our system includes the true image and also calculate the mean rank recomandation
+        of the gold image.
 
     :param similarity:
     :param threshold:
+    :param category: Not used. Just to keep the same signature with compute_recall_on_category
     :param recall_at:
     :return:
     """
@@ -52,24 +53,26 @@ def compute_recall_johnson_feiefei(similarity, threshold, category,  recall_at: 
         entry_ranks, gold_ranks = torch.logical_and((ranks == gold_recommendations), threshold_mask).nonzero(
             as_tuple=True)
 
-    recall_val = {k: ((gold_ranks < k).sum().type(torch.float) / number_entries) for k in recall_at if
+    recall_val = {"recall_at"+str(k): ((gold_ranks < k).sum().type(torch.float) / number_entries).to("cpu").numpy() for k in recall_at if
                   k <= number_entries}
+
+    mean_rank = mean_rank.to("cpu").numpy()
 
     return recall_val, mean_rank
 
 
 def compute_recall_on_category(similarity, threshold, category,  recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
     """
-    For each image, we know what is the expected best result (gold image) for a given text query.
-    That gives us a gold category annotation for the current image. We can find out how many images with this particular
-    category are in the current comparison. The recall is the proportion of the number of images from this particular
-    category in the top k recomendation divided by k. If k is superior to the sum of all images of this given category
-    in the current comparison, k is replaced by this sum. For example, if we are looking for an image of a bathroom,
-    if we have only 3 bathrooms out of 10 images, and if we are able to retrieve all bathrooms in a recall @k = 5,
-    we compute 3 bathrooms out of 3 bathrooms instead of 3 bathrooms out of 5 recommendations.
-
+        For each image, we know what is the expected best result (gold image) for a given text query.
+        That gives us a gold category annotation for the current image. We can find out how many images with this particular
+        category are in the current comparison. The recall is the proportion of the number of images from this particular
+        category in the top k recomendation divided by k. If k is superior to the sum of all images of this given category
+        in the current comparison, k is replaced by this sum. For example, if we are looking for an image of a bathroom,
+        if we have only 3 bathrooms out of 10 images, and if we are able to retrieve all bathrooms in a recall @k = 5,
+        we compute 3 bathrooms out of 3 bathrooms instead of 3 bathrooms out of 5 recommendations.
     :param similarity:
     :param threshold:
+    :param category:
     :param recall_at:
     :return:
     """
@@ -112,9 +115,8 @@ def compute_recall_on_category(similarity, threshold, category,  recall_at: list
     # superior to k, then the number is defaulted to k.
     denominator = lambda k: torch.where(sub_total_gold_category <= entries_tensor * k, sub_total_gold_category,
                                         entries_tensor * k).sum()
-
-    recall_val = {k: (numerator(k) / denominator(k)) for k in recall_at if k <= number_entries}
-
+    recall_val = {"recall_at_"+str(k): (numerator(k) / denominator(k)).to("cpu").numpy() for k in recall_at if k <= number_entries}
+    mean_rank = mean_rank.to("cpu").numpy()
     return recall_val, mean_rank
 
 def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
@@ -133,13 +135,18 @@ def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall
     recall_val, mean_rank = recall_funct(similarity, threshold, category)
 
     for k in recall_val.keys():
-        print(f"Recall @ {k}: {recall_val[k]}")
-    print(f"Mean Rank{mean_rank}")
+        print(f"{k}: {recall_val[k]}")
 
-    average_similarity = similarity.diag().mean()
+    recall_val["mean_rank"] = mean_rank
+    print(f"Mean Rank: {mean_rank}")
 
-    print(f"Average Similarity{average_similarity}")
-    return average_similarity
+    average_similarity = similarity.diag().mean().to("cpu").numpy()
+
+    print(f"Average Similarity: {average_similarity}")
+
+    recall_val["average_similarity"] = average_similarity
+    recall_val["threshold"] = threshold
+    return recall_val
 
 def compute_average_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
@@ -174,12 +181,19 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
 
     print(f"Threshold for retrieval: {threshold}")
     for k in recall_val.keys():
-        print(f"Average Recall @ {k}: {(recall_val[k] + recall_val_2[k]) / 2}")
-    print(f"Average Mean Rank{(mean_rank + mean_rank_2) / 2}")
-    average_similarity = (similarity_caption_1.diag().mean() + similarity_caption_2.diag().mean()) / 2
+        print(f"Average {k}: {(recall_val[k] + recall_val_2[k]) / 2}")
 
+    average_mean_rank = ((mean_rank + mean_rank_2) / 2)
+    recall_val["mean_rank"] = average_mean_rank
+
+    print(f"Average Mean Rank: {average_mean_rank}")
+    average_similarity = ((similarity_caption_1.diag().mean() + similarity_caption_2.diag().mean()) / 2).to("cpu").numpy()
     print(f"Average Similarity{average_similarity}")
-    return average_similarity
+
+    recall_val["average_similarity"] = average_similarity
+    recall_val["threshold"] = threshold
+
+    return recall_val
 
 
 
