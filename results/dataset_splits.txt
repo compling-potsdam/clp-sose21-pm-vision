@@ -1,0 +1,5 @@
+ADE20K: image-description-sequences, captioning
+
+Train Split: 351
+Dev Split: 10
+Test Split: 50

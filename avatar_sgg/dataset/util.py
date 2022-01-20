@@ -77,4 +77,7 @@ def group_entry_per_category(category):
 if __name__ == "__main__":
     print("Start")
     train, dev, test = get_ade20k_split()
+    print(f"Train Split: {len(train)}")
+    print(f"Dev Split: {len(dev)}")
+    print(f"Test Split: {len(test)}")
     print("Done")

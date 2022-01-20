@@ -1,5 +1,8 @@
 import torch, collections
-
+from sentence_transformers import SentenceTransformer
+from avatar_sgg.sentence_embedding.util import vectorize_captions
+from avatar_sgg.dataset.util import get_categories
+from avatar_sgg.captioning.catr.inference import CATRInference
 
 def calculate_normalized_cosine_similarity(input):
     """
@@ -22,7 +25,7 @@ def calculate_normalized_cosine_similarity(input):
     return similarity
 
 
-def compute_recall_johnson_feiefei(similarity, threshold=None, recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
+def compute_recall_johnson_feiefei(similarity, threshold, category,  recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
     """
     This is how I understood recall computation from  https://openaccess.thecvf.com/content_cvpr_2015/papers/Johnson_Image_Retrieval_Using_2015_CVPR_paper.pdf, p.6
     For each image, we know what is the expected best result (gold image) for a given text query.
@@ -55,7 +58,7 @@ def compute_recall_johnson_feiefei(similarity, threshold=None, recall_at: list =
     return recall_val, mean_rank
 
 
-def compute_recall_on_category(similarity, category, threshold=None, recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
+def compute_recall_on_category(similarity, threshold, category,  recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
     """
     For each image, we know what is the expected best result (gold image) for a given text query.
     That gives us a gold category annotation for the current image. We can find out how many images with this particular
@@ -113,3 +116,82 @@ def compute_recall_on_category(similarity, category, threshold=None, recall_at: 
     recall_val = {k: (numerator(k) / denominator(k)) for k in recall_at if k <= number_entries}
 
     return recall_val, mean_rank
+
+def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
+    """
+
+    :param ade20k_split:
+    :param threshold:
+    :param recall_funct:
+    :return:
+    """
+    vectorizer = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
+    category = get_categories(ade20k_split)
+
+    similarity = calculate_normalized_cosine_similarity(stacked_vectors)
+    recall_val, mean_rank = recall_funct(similarity, threshold, category)
+
+    for k in recall_val.keys():
+        print(f"Recall @ {k}: {recall_val[k]}")
+    print(f"Mean Rank{mean_rank}")
+
+    average_similarity = similarity.diag().mean()
+
+    print(f"Average Similarity{average_similarity}")
+    return average_similarity
+
+def compute_average_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
+    """
+    Pre-requisite. The ade20k_split has been enriched with 'add_inferred_captions()'. The synthetic caption are used as
+    query to retrieve the images based on the human captions. The results are averaged by the number of human captions
+    available (2 only)
+    :param ade20k_split:
+    :param threshold:
+    :param recall_funct:
+    :return:
+    """
+    # vectorizer = Vectorizer()
+    vectorizer = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
+    category = get_categories(ade20k_split)
+
+    index_caption_1 = 0
+    index_caption_2 = 1
+    index_inferred_caption = 2
+    caption_dim = 1
+
+    comparison_1 = torch.cat((stacked_vectors[:, index_caption_1, :].unsqueeze(caption_dim),
+                              stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)), dim=caption_dim)
+
+    comparison_2 = torch.cat((stacked_vectors[:, index_caption_2, :].unsqueeze(caption_dim),
+                              stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)), dim=caption_dim)
+
+    similarity_caption_1 = calculate_normalized_cosine_similarity(comparison_1)
+    similarity_caption_2 = calculate_normalized_cosine_similarity(comparison_2)
+    recall_val, mean_rank = recall_funct(similarity_caption_1, threshold, category)
+    recall_val_2, mean_rank_2 = recall_funct(similarity_caption_2, threshold, category)
+
+    print(f"Threshold for retrieval: {threshold}")
+    for k in recall_val.keys():
+        print(f"Average Recall @ {k}: {(recall_val[k] + recall_val_2[k]) / 2}")
+    print(f"Average Mean Rank{(mean_rank + mean_rank_2) / 2}")
+    average_similarity = (similarity_caption_1.diag().mean() + similarity_caption_2.diag().mean()) / 2
+
+    print(f"Average Similarity{average_similarity}")
+    return average_similarity
+
+
+
+
+def add_inferred_captions(data_split):
+    """
+    Adds caption from CATR model to the given ADE20K split.
+    :param data_split:
+    :return:
+    """
+    catr = CATRInference()
+    for path in data_split.keys():
+        output = catr.infer(path)
+        data_split[path]["caption"].append(output)
+

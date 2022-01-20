@@ -6,7 +6,7 @@ Created on 13.08.2020
 from setuptools import setup, find_packages
 
 setup(
-    name='avatar',
+    name='avatar_sgg',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see

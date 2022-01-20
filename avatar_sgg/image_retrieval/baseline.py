@@ -1,30 +1,39 @@
-from avatar_sgg.dataset.util import get_ade20k_split, get_categories
-from avatar_sgg.image_retrieval.evaluation import compute_recall_on_category, calculate_normalized_cosine_similarity
-from avatar_sgg.sentence_embedding.util import vectorize_captions
-from avatar_sgg.sentence_embedding.distilbert_vectorizer import Vectorizer
-from sentence_transformers import SentenceTransformer
+from avatar_sgg.dataset.util import get_ade20k_split
+from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity, compute_recall_on_category, compute_recall_johnson_feiefei,calculate_normalized_cosine_similarity, add_inferred_captions
+import numpy as np
 
 
-def compute_average_similarity(ade20k_split, threshold=None):
-    #vectorizer = Vectorizer()
-    vectorizer = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-    stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
-    category = get_categories(ade20k_split)
+def run_evaluation(evaluation_name, split, similarity_function, threshold_list, recall_function):
 
-    similarity = calculate_normalized_cosine_similarity(stacked_vectors)
-    recall_val, mean_rank = compute_recall_on_category(similarity, category, threshold)
-
-    for k in recall_val.keys():
-        print(f"Recall @ {k}: {recall_val[k]}")
-    print(f"Mean Rank{mean_rank}")
-
-
-    return similarity.diag().mean()
+    print(f"############## Start Evaluation: {evaluation_name} ############## ")
+    for t in threshold_list:
+        print("\n")
+        print(f"Threshold: {t}")
+        similarity_function(split, t, recall_function)
+        print("\n")
+    print(f"############## End Evaluation: {evaluation_name} ############## ")
 
 
 if __name__ == "__main__":
     print("Start")
     train, dev, test = get_ade20k_split()
-    average_distance = compute_average_similarity(dev)
-    print("average distance", average_distance)
+
+    current = test
+    threshold_list = [None]
+    #This range has been chosen because the mean of the diagonal on the dev set was around 0.6X
+    threshold_list.extend(np.linspace(0.55, 0.7, 15))
+
+    evaluation_name = "Based on human captions query only, Fei Fei / Johnson Recall"
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei)
+
+    evaluation_name = "Based on human captions query only, ADE20K Category Based Recall"
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category)
+
+    add_inferred_captions(current)
+    evaluation_name = "Based on CATR captions query, Fei Fei / Johnson Recall"
+    run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei)
+
+    evaluation_name = "Based on CATR captions query, ADE20K Category Based Recall"
+    run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_on_category)
+
     print("Done")
