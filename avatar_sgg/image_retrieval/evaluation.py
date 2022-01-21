@@ -3,6 +3,7 @@ from sentence_transformers import SentenceTransformer
 from avatar_sgg.sentence_embedding.util import vectorize_captions
 from avatar_sgg.dataset.util import get_categories
 from avatar_sgg.captioning.catr.inference import CATRInference
+import string
 
 def calculate_normalized_cosine_similarity(input):
     """
@@ -196,6 +197,24 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
     return recall_val
 
 
+def merge_human_captions(data_split):
+    """
+    Merges all Human captions together, let the CATR caption separate.
+    :param data_split:
+    :return:
+    """
+
+    for path in data_split.keys():
+
+        if len(data_split[path]["caption"]) == 3:
+            human_captions = data_split[path]["caption"][:2]
+            catr_caption = data_split[path]["caption"][2]
+            glue = ". "
+            if human_captions[0][-1] in string.punctuation:
+                glue = " "
+            human_captions = glue.join(human_captions)
+
+            data_split[path]["caption"] = [ human_captions , catr_caption]
 
 
 def add_inferred_captions(data_split):

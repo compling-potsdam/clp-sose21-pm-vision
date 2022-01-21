@@ -1,6 +1,6 @@
 from avatar_sgg.dataset.util import get_ade20k_split
 from avatar_sgg.config.util import get_config
-from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity, compute_recall_on_category, compute_recall_johnson_feiefei,calculate_normalized_cosine_similarity, add_inferred_captions
+from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity, compute_recall_on_category, compute_recall_johnson_feiefei,calculate_normalized_cosine_similarity, add_inferred_captions, merge_human_captions
 import numpy as np
 import pandas as pd
 import os
@@ -37,6 +37,7 @@ if __name__ == "__main__":
     human_caption = "human_captions_query"
     fei_fei_recall = "feifei_johnson_recall"
     catr_caption = "catr_captions_query"
+    merged_human_caption = "merged_human_caption_catr_captions_query"
     ade20k_category_recall = "ade20k_category_recall"
 
     evaluation_name = eval_name(human_caption, fei_fei_recall)
@@ -51,5 +52,16 @@ if __name__ == "__main__":
 
     evaluation_name = eval_name(catr_caption, ade20k_category_recall)
     run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_on_category, output_dir)
+
+
+    merge_human_captions(current)
+    evaluation_name = eval_name(merged_human_caption, fei_fei_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei, output_dir)
+
+    evaluation_name = eval_name(merged_human_caption, ade20k_category_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category, output_dir)
+
+
+
 
     print("Done")
