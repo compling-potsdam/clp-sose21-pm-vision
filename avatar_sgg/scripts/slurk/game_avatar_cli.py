@@ -33,7 +33,7 @@ def build_url(host, context=None, port=None, base_url=None, auth=None):
 @click.command()
 @click.option("--name", default="None", show_default=True, required=True,
               help="The name suffix for the avatar_sgg. The avatar_sgg will be Avatar-<name> or just Avatar if not given.")
-@click.option("--token", show_default=True, required=False,
+@click.option("--token", show_default=True, required=True,
               help="the token for the avatar_sgg bot. You get this afer game-setup. "
                    "The bot will join the token room.")
 @click.option("--slurk_host", default="127.0.0.1", show_default=True, required=True,
