@@ -216,6 +216,19 @@ def merge_human_captions(data_split):
 
             data_split[path]["caption"] = [ human_captions , catr_caption]
 
+def use_merged_sequence(data_split):
+    """
+    Remove human captions, use the merged sequences of descriptions instead.
+    Intended to use when CATR caption have been generated
+    :param data_split:
+    :return:
+    """
+
+    for path in data_split.keys():
+        range = len(data_split[path]["caption"])
+        catr_caption = data_split[path]["caption"][range - 1]
+        data_split[path]["caption"] = [data_split[path]["merged_sequences"], catr_caption]
+
 
 def add_inferred_captions(data_split):
     """

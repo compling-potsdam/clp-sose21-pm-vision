@@ -3,7 +3,7 @@ import os
 import collections
 import pandas as pd
 import random
-
+import string
 
 def get_ade20k_caption_annotations():
     """
@@ -20,13 +20,19 @@ def get_ade20k_caption_annotations():
     sequences_file = os.path.join(ade20k_caption_dir, "sequences.csv")
     captions_df = pd.read_csv(captions_file, sep="\t", header=0)
     sequences_df = pd.read_csv(sequences_file, sep="\t", header=0)
-    sequences_fram = sequences_df[["image_id", "image_path", "image_cat"]]
+    sequences_df["d1"] = sequences_df["d1"].map(lambda a: a if a[-1] in string.punctuation else a+ ". ")
+    sequences_df["d2"] = sequences_df["d2"].map(lambda a: a if a[-1] in string.punctuation else a + ". ")
+    sequences_df["d3"] = sequences_df["d3"].map(lambda a: a if a[-1] in string.punctuation else a + ". ")
+    sequences_df["d4"] = sequences_df["d4"].map(lambda a: a if a[-1] in string.punctuation else a + ". ")
+    sequences_df["d5"] = sequences_df["d5"].map(lambda a: a if a[-1] in string.punctuation else a + ". ")
+    sequences_df["merged_sequences"] = sequences_df[["d1", "d2", "d3", "d4", "d5"]].agg(lambda x: ''.join(x.values), axis=1).T
+    sequences_fram = sequences_df[["image_id", "image_path", "image_cat", "merged_sequences"]]
     captions_df = pd.merge(captions_df, sequences_fram, how='inner', left_on=['image_id'], right_on=['image_id'])
-    captions_df.image_path = captions_df.image_path.map(lambda a: os.path.join("file://", ade20k_dir, "images", a))
+    captions_df["image_path"] = captions_df["image_path"].map(lambda a: os.path.join("file://", ade20k_dir, "images", a))
     captions_df.drop(["Unnamed: 0"], axis=1)
 
     captions_list = [{"image_id": row["image_id"], "id": row["caption_id"], "caption": row["caption"],
-                      "image_path": row["image_path"], "image_cat": row["image_cat"]} for i, row in captions_df.iterrows()]
+                      "image_path": row["image_path"], "image_cat": row["image_cat"], "merged_sequences": row["merged_sequences"]} for i, row in captions_df.iterrows()]
     # { id: list(captions_df[captions_df["image_id"] == id ]["caption"]) for id in ids  }
 
     # Group all captions together having the same image ID.
@@ -35,13 +41,16 @@ def get_ade20k_caption_annotations():
         caption = val['caption']
         category = val['image_cat']
         image_path = val["image_path"]
+        merged_sequences = val["merged_sequences"]
         image_path_to_caption[image_path]["category"] = category
+        image_path_to_caption[image_path]["merged_sequences"] = merged_sequences
         if "caption" not in image_path_to_caption[image_path].keys():
             image_path_to_caption[image_path]["caption"] = [caption ]
         else:
             image_path_to_caption[image_path]["caption"].append(caption)
 
     return image_path_to_caption
+
 
 
 def get_ade20k_split(test_proportion: int = 15, test_size: int = 10):
