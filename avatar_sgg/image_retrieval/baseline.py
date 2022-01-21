@@ -43,36 +43,36 @@ if __name__ == "__main__":
     merged_sequences_captions = "merged_sequences_catr_captions_query"
     ade20k_category_recall = "ade20k_category_recall"
 
-    # evaluation_name = eval_name(human_caption, fei_fei_recall)
-    # run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
-    #                output_dir)
-    #
-    # evaluation_name = eval_name(human_caption, ade20k_category_recall)
-    # run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category, output_dir)
-    #
+    evaluation_name = eval_name(human_caption, fei_fei_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
+                   output_dir)
+
+    evaluation_name = eval_name(human_caption, ade20k_category_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category, output_dir)
+
     add_inferred_captions(current)
-    # evaluation_name = eval_name(catr_caption, fei_fei_recall)
-    # run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei,
-    #                output_dir)
-    #
-    # evaluation_name = eval_name(catr_caption, ade20k_category_recall)
-    # run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_on_category,
-    #                output_dir)
-    #
-    # merge_human_captions(current)
-    # evaluation_name = eval_name(merged_human_caption, fei_fei_recall)
-    # run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
-    #                output_dir)
-    #
-    # evaluation_name = eval_name(merged_human_caption, ade20k_category_recall)
-    # run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category, output_dir)
-    #
-    # evaluation_name = eval_name(merged_human_caption, fei_fei_recall)
-    # run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
-    #                output_dir)
-    #
-    # evaluation_name = eval_name(merged_human_caption, ade20k_category_recall)
-    # run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category, output_dir)
+    evaluation_name = eval_name(catr_caption, fei_fei_recall)
+    run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei,
+                   output_dir)
+
+    evaluation_name = eval_name(catr_caption, ade20k_category_recall)
+    run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_on_category,
+                   output_dir)
+
+    merge_human_captions(current)
+    evaluation_name = eval_name(merged_human_caption, fei_fei_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
+                   output_dir)
+
+    evaluation_name = eval_name(merged_human_caption, ade20k_category_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category, output_dir)
+
+    evaluation_name = eval_name(merged_human_caption, fei_fei_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
+                   output_dir)
+
+    evaluation_name = eval_name(merged_human_caption, ade20k_category_recall)
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_on_category, output_dir)
 
     use_merged_sequence(current)
     evaluation_name = eval_name(merged_sequences_captions, fei_fei_recall)

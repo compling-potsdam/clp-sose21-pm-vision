@@ -58,7 +58,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         :return:
         """
         if self.debug:
-            print(message)
+            print(*message)
 
     def set_base_image_url(self, base_image_url: str):
         self.base_image_url = base_image_url

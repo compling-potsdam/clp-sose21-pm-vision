@@ -12,6 +12,7 @@ import click
 import socketIO_client
 
 from avatar_sgg.game_avatar import SimpleAvatar
+from avatar_sgg.game_avatar_baseline import BaselineAvatar
 from avatar_sgg.game_avatar_slurk import AvatarBot
 
 
@@ -32,7 +33,7 @@ def build_url(host, context=None, port=None, base_url=None, auth=None):
 @click.command()
 @click.option("--name", default="None", show_default=True, required=True,
               help="The name suffix for the avatar_sgg. The avatar_sgg will be Avatar-<name> or just Avatar if not given.")
-@click.option("--token", show_default=True, required=True,
+@click.option("--token", show_default=True, required=False,
               help="the token for the avatar_sgg bot. You get this afer game-setup. "
                    "The bot will join the token room.")
 @click.option("--slurk_host", default="127.0.0.1", show_default=True, required=True,
@@ -65,7 +66,8 @@ def start_and_wait(name, token, slurk_host, slurk_context, slurk_port, image_dir
     print("Try to connect to: ", socket_url)
     sio = socketIO_client.SocketIO(socket_url, slurk_port, headers=custom_headers, Namespace=AvatarBot)
     # NOTE: YOU SHOULD REFERENCE YOUR MODEL HERE
-    avatar_model = SimpleAvatar(image_directory)
+    #avatar_model = SimpleAvatar(image_directory)
+    avatar_model = BaselineAvatar(image_directory)
     sio.get_namespace().set_agent(avatar_model)
     print("Connected and everything set. Waiting for incoming traffic...")
     sio.wait()
