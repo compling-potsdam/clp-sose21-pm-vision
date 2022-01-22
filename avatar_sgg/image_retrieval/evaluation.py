@@ -5,7 +5,7 @@ from avatar_sgg.dataset.util import get_categories
 from avatar_sgg.captioning.catr.inference import CATRInference
 import string
 
-def calculate_normalized_cosine_similarity(input):
+def calculate_normalized_cosine_similarity_for_captions(input):
     """
     Input has the dimensions: number of entries * 2 * vector dimension
     :param input:
@@ -15,16 +15,36 @@ def calculate_normalized_cosine_similarity(input):
     first_embeds = input[:, 0, :]
     second_embeds = input[:, 1, :]
 
-    similarity = first_embeds @ second_embeds.T
+    return calculate_normalized_cosine_similarity(first_embeds, second_embeds)
 
-    norm_1 = first_embeds.norm(dim=1, p=2)
-    norm_2 = second_embeds.norm(dim=1, p=2)
+def calculate_normalized_cosine_similarity(gallery_input, query):
+    """
+    Input has the dimensions: number of entries X * vector dimension
+    query has the dimension number of entries Y * vector dimension
+    :param input:
+    :return:
+    """
+
+    #Trivial check to insure the dimension stated in the method header.
+    num_dim_gallery = len(gallery_input.shape)
+    num_dim_query = len(query.shape)
+    assert num_dim_gallery < 3
+    assert num_dim_query < 3
+    if num_dim_query == 1:
+        query = query.unsqueeze(0)
+    if num_dim_gallery == 1:
+        gallery_input = gallery_input.unsqueeze(0)
+    assert gallery_input.shape[1] == query.shape[1]
+
+    similarity = gallery_input @ query.T
+
+    norm_1 = gallery_input.norm(dim=1, p=2)
+    norm_2 = query.norm(dim=1, p=2)
     norm = norm_1.unsqueeze(1) * norm_2.unsqueeze(1).T
     # Normalize the similarity scores to make them comparable
     similarity = similarity / norm
 
     return similarity
-
 
 def compute_recall_johnson_feiefei(similarity, threshold, category,  recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
     """
@@ -132,7 +152,7 @@ def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall
     stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
     category = get_categories(ade20k_split)
 
-    similarity = calculate_normalized_cosine_similarity(stacked_vectors)
+    similarity = calculate_normalized_cosine_similarity_for_captions(stacked_vectors)
     recall_val, mean_rank = recall_funct(similarity, threshold, category)
 
     for k in recall_val.keys():
@@ -175,8 +195,8 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
     comparison_2 = torch.cat((stacked_vectors[:, index_caption_2, :].unsqueeze(caption_dim),
                               stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)), dim=caption_dim)
 
-    similarity_caption_1 = calculate_normalized_cosine_similarity(comparison_1)
-    similarity_caption_2 = calculate_normalized_cosine_similarity(comparison_2)
+    similarity_caption_1 = calculate_normalized_cosine_similarity_for_captions(comparison_1)
+    similarity_caption_2 = calculate_normalized_cosine_similarity_for_captions(comparison_2)
     recall_val, mean_rank = recall_funct(similarity_caption_1, threshold, category)
     recall_val_2, mean_rank_2 = recall_funct(similarity_caption_2, threshold, category)
 
@@ -241,3 +261,18 @@ def add_inferred_captions(data_split):
         output = catr.infer(path)
         data_split[path]["caption"].append(output)
 
+if __name__ == "__main__":
+    print("Start")
+    import os
+    from avatar_sgg.config.util import get_config
+    from avatar_sgg.dataset.util import get_ade20k_split
+    output_dir = os.path.join(get_config()["output_dir"], "image_retrieval")
+    train, dev, test = get_ade20k_split()
+
+    current = dev
+    vectorizer = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    stacked_vectors = vectorize_captions(current, vectorizer)
+    first_embeds = stacked_vectors[:, 0, :]
+    query = stacked_vectors[0, 1, :]
+    calculate_normalized_cosine_similarity(first_embeds, query)
+    print("End")

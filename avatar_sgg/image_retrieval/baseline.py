@@ -10,7 +10,7 @@ import os
 
 def run_evaluation(evaluation_name, split, similarity_function, threshold_list, recall_function, output_dir):
     values = []
-    print(f"############## Start Evaluation: {evaluation_name} ############## ")
+    print(f"\n############## Start Evaluation: {evaluation_name} ############## ")
     for t in threshold_list:
         print("\n")
         print(f"Threshold: {t}")
