@@ -1,3 +1,6 @@
+import string
+
+
 class Avatar(object):
     """
         The Abstract Avatar Class
@@ -11,7 +14,7 @@ class Avatar(object):
             "w": "west",
             "s": "south"
         }
-
+        self.interactions = []
 
     def direction_to_word(self, direction: str):
         if direction in self.DIRECTION_TO_WORD:
@@ -27,7 +30,6 @@ class Avatar(object):
         words = [self.direction_to_word(d) for d in directions]
         return ", ".join(words[:-1]) + " or " + words[-1]
 
-
     def _print(self, *message):
         """
         Print your message when debug is true
@@ -37,7 +39,6 @@ class Avatar(object):
         """
         if self.debug:
             print(*message)
-
 
     def step(self, observation: dict) -> dict:
         """
@@ -56,12 +57,24 @@ class Avatar(object):
         """
         raise NotImplementedError("step")
 
+    def aggregate_interactions(self):
+
+        cleaned_messages = [i if i[-1] in string.punctuation else i + "." for i in self.interactions]
+        return " ".join(cleaned_messages)
+
     def is_interaction_allowed(self):
         """
         Depends on the number of interactions allowed per game
         :return:
         """
         raise NotImplementedError("is_interaction_allowed")
+
+    def reset(self):
+        """
+        Reset the avatar attributes before starting a new game.
+        :return:
+        """
+        raise NotImplementedError("reset")
 
     def get_prediction(self):
         """

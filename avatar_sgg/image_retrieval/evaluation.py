@@ -5,6 +5,7 @@ from avatar_sgg.dataset.util import get_categories
 from avatar_sgg.captioning.catr.inference import CATRInference
 import string
 
+
 def calculate_normalized_cosine_similarity_for_captions(input):
     """
     Input has the dimensions: number of entries * 2 * vector dimension
@@ -17,6 +18,7 @@ def calculate_normalized_cosine_similarity_for_captions(input):
 
     return calculate_normalized_cosine_similarity(first_embeds, second_embeds)
 
+
 def calculate_normalized_cosine_similarity(gallery_input, query):
     """
     Input has the dimensions: number of entries X * vector dimension
@@ -25,7 +27,7 @@ def calculate_normalized_cosine_similarity(gallery_input, query):
     :return:
     """
 
-    #Trivial check to insure the dimension stated in the method header.
+    # Trivial check to insure the dimension stated in the method header.
     num_dim_gallery = len(gallery_input.shape)
     num_dim_query = len(query.shape)
     assert num_dim_gallery < 3
@@ -46,7 +48,8 @@ def calculate_normalized_cosine_similarity(gallery_input, query):
 
     return similarity
 
-def compute_recall_johnson_feiefei(similarity, threshold, category,  recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
+
+def compute_recall_johnson_feiefei(similarity, threshold, category, recall_at: list = [1, 2, 3, 4, 5, 10, 20, 50, 100]):
     """
         This is how I understood recall computation from  https://openaccess.thecvf.com/content_cvpr_2015/papers/Johnson_Image_Retrieval_Using_2015_CVPR_paper.pdf, p.6
         For each image, we know what is the expected best result (gold image) for a given text query.
@@ -74,7 +77,8 @@ def compute_recall_johnson_feiefei(similarity, threshold, category,  recall_at: 
         entry_ranks, gold_ranks = torch.logical_and((ranks == gold_recommendations), threshold_mask).nonzero(
             as_tuple=True)
 
-    recall_val = {"recall_at"+str(k): ((gold_ranks < k).sum().type(torch.float) / number_entries).to("cpu").numpy() for k in recall_at if
+    recall_val = {"recall_at" + str(k): ((gold_ranks < k).sum().type(torch.float) / number_entries).to("cpu").numpy()
+                  for k in recall_at if
                   k <= number_entries}
 
     mean_rank = mean_rank.to("cpu").numpy()
@@ -82,7 +86,7 @@ def compute_recall_johnson_feiefei(similarity, threshold, category,  recall_at: 
     return recall_val, mean_rank
 
 
-def compute_recall_on_category(similarity, threshold, category,  recall_at: list = [1, 2, 3, 4, 5,  10, 20, 50, 100]):
+def compute_recall_on_category(similarity, threshold, category, recall_at: list = [1, 2, 3, 4, 5, 10, 20, 50, 100]):
     """
         For each image, we know what is the expected best result (gold image) for a given text query.
         That gives us a gold category annotation for the current image. We can find out how many images with this particular
@@ -136,9 +140,11 @@ def compute_recall_on_category(similarity, threshold, category,  recall_at: list
     # superior to k, then the number is defaulted to k.
     denominator = lambda k: torch.where(sub_total_gold_category <= entries_tensor * k, sub_total_gold_category,
                                         entries_tensor * k).sum()
-    recall_val = {"recall_at_"+str(k): (numerator(k) / denominator(k)).to("cpu").numpy() for k in recall_at if k <= number_entries}
+    recall_val = {"recall_at_" + str(k): (numerator(k) / denominator(k)).to("cpu").numpy() for k in recall_at if
+                  k <= number_entries}
     mean_rank = mean_rank.to("cpu").numpy()
     return recall_val, mean_rank
+
 
 def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
@@ -168,6 +174,7 @@ def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall
     recall_val["average_similarity"] = average_similarity
     recall_val["threshold"] = threshold
     return recall_val
+
 
 def compute_average_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
@@ -208,7 +215,8 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
     recall_val["mean_rank"] = average_mean_rank
 
     print(f"Average Mean Rank: {average_mean_rank}")
-    average_similarity = ((similarity_caption_1.diag().mean() + similarity_caption_2.diag().mean()) / 2).to("cpu").numpy()
+    average_similarity = ((similarity_caption_1.diag().mean() + similarity_caption_2.diag().mean()) / 2).to(
+        "cpu").numpy()
     print(f"Average Similarity{average_similarity}")
 
     recall_val["average_similarity"] = average_similarity
@@ -234,7 +242,8 @@ def merge_human_captions(data_split):
                 glue = " "
             human_captions = glue.join(human_captions)
 
-            data_split[path]["caption"] = [ human_captions , catr_caption]
+            data_split[path]["caption"] = [human_captions, catr_caption]
+
 
 def use_merged_sequence(data_split):
     """
@@ -261,11 +270,13 @@ def add_inferred_captions(data_split):
         output = catr.infer(path)
         data_split[path]["caption"].append(output)
 
+
 if __name__ == "__main__":
     print("Start")
     import os
     from avatar_sgg.config.util import get_config
     from avatar_sgg.dataset.util import get_ade20k_split
+
     output_dir = os.path.join(get_config()["output_dir"], "image_retrieval")
     train, dev, test = get_ade20k_split()
 
@@ -274,5 +285,6 @@ if __name__ == "__main__":
     stacked_vectors = vectorize_captions(current, vectorizer)
     first_embeds = stacked_vectors[:, 0, :]
     query = stacked_vectors[0, 1, :]
-    calculate_normalized_cosine_similarity(first_embeds, query)
+    similarity = calculate_normalized_cosine_similarity(first_embeds, query)
+    values, ranks = torch.topk(similarity, 1, dim=0)
     print("End")

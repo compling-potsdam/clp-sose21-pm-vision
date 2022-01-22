@@ -159,6 +159,7 @@ class GameMaster(socketIO_client.BaseNamespace):
 
                 player_observation = game.get_observation(player_id)
                 player_instance = player_observation["instance"]
+                #TODO handle the case when we don't provide the room with the player
                 game_success = player_instance == command["guessed_room"]
                 self.__print("Guessed room", command["guessed_room"])
                 self.__end_avatar_game(user, game, game_success)
