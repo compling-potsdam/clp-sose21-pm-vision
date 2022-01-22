@@ -15,6 +15,7 @@ class Avatar(object):
             "s": "south"
         }
         self.interactions = []
+        self.room_found = False
 
     def direction_to_word(self, direction: str):
         if direction in self.DIRECTION_TO_WORD:

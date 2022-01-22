@@ -20,6 +20,8 @@ class BaselineAvatar(Avatar):
 
     def __init__(self, image_directory):
         config = get_config()
+        if image_directory is None:
+            image_directory = os.path.join(config["ade20k"]["root_dir"], "images", "training")
         sentence_bert_device = config["captioning"]["sentence_bert"]["cuda_device"]
         sentence_bert_model = config["captioning"]["sentence_bert"]["model"]
         config = config["game_setup"]
@@ -34,9 +36,10 @@ class BaselineAvatar(Avatar):
         self.image_directory = image_directory
 
         self.caption_expert: CATRInference = CATRInference()
-        self.similarity_expert: SentenceTransformer = SentenceTransformer(sentence_bert_model).to(sentence_bert_device)
+        self.similarity_expert: SentenceTransformer = SentenceTransformer(model_name_or_path=sentence_bert_model, device=sentence_bert_device)
         self._print(f"Avatar using SentenceBert with {sentence_bert_model} for caption similarity.")
         self.similarity_threshold = config["similarity_threshold"]
+        self.minimum_similarity_threshold = config["minimum_similarity_threshold"]
         self.aggregate_interaction = config["aggregate_interaction"]
         self._print(f"Threshold for similarity based retrieval: {self.similarity_threshold}")
         self._print(f"Aggregate Interaction: {self.aggregate_interaction}")
@@ -66,13 +69,19 @@ class BaselineAvatar(Avatar):
         self.vectorized_interactions = []
         self.current_candidate_similarity = 0.0
         self.current_candidate_rank = None
+        self.interactions = []
+        self.room_found = False
 
     def is_interaction_allowed(self):
         """
         check if the avatar is still allowed to process messages.
         :return:
         """
-        return self.number_of_interaction < self.max_number_of_interaction
+
+        if self.room_found:
+            return False
+
+        return (self.number_of_interaction < self.max_number_of_interaction)
 
     def get_prediction(self):
         """
@@ -133,6 +142,11 @@ class BaselineAvatar(Avatar):
         else:
             actions["response"] = self.__generate_response(message)
 
+    def __set_room_found(self):
+
+        if self.current_candidate_similarity >= self.similarity_threshold:
+            self.room_found = True
+
     def __generate_response(self, message: str) -> str:
         self.__increment_number_of_interaction()
         message = message.lower()
@@ -146,29 +160,16 @@ class BaselineAvatar(Avatar):
         values, ranks = torch.topk(similarity, 1, dim=0)
         values = values[0][0].to("cpu").numpy()
         ranks = ranks[0][0].to("cpu").numpy()
-        if values >= self.similarity_threshold and values > self.current_candidate_similarity:
+        if values > self.current_candidate_similarity:
             self.current_candidate_similarity = values
             self.current_candidate_ranks = ranks
 
-        if message.startswith("what"):
-            if self.observation:
-                return "I see " + self.observation["image"]
-            else:
-                return "I dont know"
+        self.__set_room_found()
 
-        if message.startswith("where"):
-            if self.observation:
-                return "I can go " + self.directions_to_sent(self.observation["directions"])
-            else:
-                return "I dont know"
-
-        if message.endswith("?"):
-            if self.observation:
-                return "It has maybe something to do with " + self.observation["image"]
-            else:
-                return "I dont know"
-
-        return f"You interacted {self.number_of_interaction} times with me."
+        found_msg = ""
+        if self.room_found:
+            found_msg = " I believe I found the room based on your description."
+        return f"You interacted {self.number_of_interaction} times with me.{found_msg}"
 
     def __predict_move_action(self, message: str) -> str:
         if "north" in message:
