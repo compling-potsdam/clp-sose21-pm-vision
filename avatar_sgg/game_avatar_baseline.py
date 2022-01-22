@@ -36,7 +36,8 @@ class BaselineAvatar(Avatar):
         self.image_directory = image_directory
 
         self.caption_expert: CATRInference = CATRInference()
-        self.similarity_expert: SentenceTransformer = SentenceTransformer(model_name_or_path=sentence_bert_model, device=sentence_bert_device)
+        self.similarity_expert: SentenceTransformer = SentenceTransformer(model_name_or_path=sentence_bert_model,
+                                                                          device=sentence_bert_device)
         self._print(f"Avatar using SentenceBert with {sentence_bert_model} for caption similarity.")
         self.similarity_threshold = config["similarity_threshold"]
         self.minimum_similarity_threshold = config["minimum_similarity_threshold"]
@@ -90,7 +91,8 @@ class BaselineAvatar(Avatar):
         """
         prediction = None
 
-        if self.current_candidate_ranks is not None:
+        if (self.current_candidate_ranks is not None) and (
+                self.current_candidate_similarity > self.minimum_similarity_threshold):
             prediction = self.map_nodes[self.current_candidate_ranks]
 
         # choice = random.choice(list(self.map_nodes.items()))
