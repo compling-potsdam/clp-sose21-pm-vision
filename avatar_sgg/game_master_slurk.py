@@ -174,7 +174,6 @@ class GameMaster(socketIO_client.BaseNamespace):
                     # room of the player.
                     game_success = player_room not in self.map_nodes.values()
 
-
                 self.__print("Guessed room", command["guessed_room"])
                 self.__end_avatar_game(user, game, game_success)
 

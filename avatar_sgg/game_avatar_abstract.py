@@ -16,6 +16,14 @@ class Avatar(object):
         }
         self.interactions = []
         self.room_found = False
+        self.number_of_interaction = None
+        self.current_candidate_similarity = None
+
+    def get_number_of_interaction(self):
+        return self.number_of_interaction
+
+    def get_current_candidate_similarity(self):
+        return self.current_candidate_similarity
 
     def direction_to_word(self, direction: str):
         if direction in self.DIRECTION_TO_WORD:

@@ -119,9 +119,7 @@ class AvatarBot(socketIO_client.BaseNamespace):
 
             # {'command': 'done', 'user': {'id': 3, 'name': 'Player 1'}, 'room': 'avatar_room'}
             if not self.agent.is_interaction_allowed():
-                # The agent finishes the game after sufficient number of interactions
-                guessed_room = self.agent.get_prediction()
-                self.__send_done_command(guessed_room, room_name)
+                self.__send_done_command(room_name)
 
             if "move" in actions:
                 command = actions["move"]
@@ -133,9 +131,18 @@ class AvatarBot(socketIO_client.BaseNamespace):
     def __send_message(self, message, room_name):
         self.emit("text", {'room': room_name, 'msg': message}, check_error_callback)
 
-    def __send_done_command(self, guessed_room, room_name):
+    def __send_done_command(self, room_name):
         self.active = False
-        self.emit("message_command", {'room': room_name, 'command': {"msg": "done", 'guessed_room': guessed_room}},
+        # The agent finishes the game after sufficient number of interactions
+        guessed_room = self.agent.get_prediction()
+        number_interactions = self.agent.get_number_of_interaction()
+        current_candidate_similarity = self.agent.get_current_candidate_similarity()
+        self.emit("message_command", {'room': room_name,
+                                      'command': {"msg": "done",
+                                                  'guessed_room': guessed_room,
+                                                  'number_of_interaction': number_interactions,
+                                                  'current_candidate_similarity': current_candidate_similarity
+                                                  }},
                   check_error_callback)
 
     def __send_command(self, command, room_name):
