@@ -51,7 +51,7 @@ class BaselineAvatar(Avatar):
         self.vectorized_captions = None
         self.vectorized_interactions = None
         self.current_candidate_similarity = None
-        self.current_candidate_rank = None
+        self.current_candidate_ranks = None
 
         self.reset()
 
@@ -68,7 +68,7 @@ class BaselineAvatar(Avatar):
         self.vectorized_captions = None
         self.vectorized_interactions = []
         self.current_candidate_similarity = 0.0
-        self.current_candidate_rank = None
+        self.current_candidate_ranks = None
         self.interactions = []
         self.room_found = False
 
@@ -90,8 +90,8 @@ class BaselineAvatar(Avatar):
         """
         prediction = None
 
-        if self.current_candidate_rank is not None:
-            prediction = self.map_nodes[self.current_candidate_rank]
+        if self.current_candidate_ranks is not None:
+            prediction = self.map_nodes[self.current_candidate_ranks]
 
         # choice = random.choice(list(self.map_nodes.items()))
         return prediction
@@ -158,8 +158,8 @@ class BaselineAvatar(Avatar):
         self.vectorized_interactions.append(vectorized_query)
         similarity = calculate_normalized_cosine_similarity(self.vectorized_captions, vectorized_query)
         values, ranks = torch.topk(similarity, 1, dim=0)
-        values = values[0][0].to("cpu").numpy()
-        ranks = ranks[0][0].to("cpu").numpy()
+        values = float(values[0][0].to("cpu").numpy())
+        ranks = int(ranks[0][0].to("cpu").numpy())
         if values > self.current_candidate_similarity:
             self.current_candidate_similarity = values
             self.current_candidate_ranks = ranks
