@@ -77,7 +77,7 @@ def compute_recall_johnson_feiefei(similarity, threshold, category, recall_at: l
         entry_ranks, gold_ranks = torch.logical_and((ranks == gold_recommendations), threshold_mask).nonzero(
             as_tuple=True)
 
-    recall_val = {"recall_at" + str(k): ((gold_ranks < k).sum().type(torch.float) / number_entries).to("cpu").numpy()
+    recall_val = {"recall_at_" + str(k): ((gold_ranks < k).sum().type(torch.float) / number_entries).to("cpu").numpy()
                   for k in recall_at if
                   k <= number_entries}
 

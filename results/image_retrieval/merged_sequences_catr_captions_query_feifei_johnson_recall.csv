@@ -1,4 +1,4 @@
-,recall_at1,recall_at2,recall_at3,recall_at4,recall_at5,recall_at10,recall_at20,recall_at50,mean_rank,average_similarity,threshold
+,recall_at_1,recall_at_2,recall_at_3,recall_at_4,recall_at_5,recall_at_10,recall_at_20,recall_at_50,mean_rank,average_similarity,threshold
 0,0.26,0.35999998,0.42,0.53999996,0.62,0.74,0.9,1.0,7.44,0.5637433,
 1,0.26,0.35999998,0.39999998,0.52,0.58,0.64,0.65999997,0.65999997,7.44,0.5637433,0.55
 2,0.22,0.32,0.35999998,0.48,0.53999996,0.59999996,0.62,0.62,7.44,0.5637433,0.5607142857142857
