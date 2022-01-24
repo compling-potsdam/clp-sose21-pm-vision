@@ -27,6 +27,7 @@ class AvatarBot(socketIO_client.BaseNamespace):
         self.id = None
         self.agent = None
         self.emit("ready")  # invokes on_joined_room for the token room so we can get the user.id
+        self.active = True
 
     def set_agent(self, agent: Avatar):
         self.agent = agent
@@ -72,7 +73,7 @@ class AvatarBot(socketIO_client.BaseNamespace):
         """
         if not self.id:
             return  # not ready yet
-        #print( "on_text_message", data)
+        # print( "on_text_message", data)
         message = data["msg"]
         room_name = data["room"]
         user_name = data["user"]["name"]
@@ -91,6 +92,10 @@ class AvatarBot(socketIO_client.BaseNamespace):
                                            "done": obs["done"]})
                 self.__perform_actions(actions, room_name)
             elif is_dict and "map_nodes" in message:
+                self.active = True
+                # only happens at the start of anew round, so the avatar states need reset.
+                print("Avatar state reset.")
+                self.agent.reset()
                 print("map nodes set on agent:", message["map_nodes"])
                 self.agent.set_map_nodes(message["map_nodes"])
 
@@ -109,25 +114,36 @@ class AvatarBot(socketIO_client.BaseNamespace):
         self.__perform_actions(actions, room_name)
 
     def __perform_actions(self, actions, room_name):
-        #TODO This is where you will perform the image similarity operation on the stored gallery.
+        if self.active:
+            # TODO This is where you will perform the image similarity operation on the stored gallery.
 
-        #{'command': 'done', 'user': {'id': 3, 'name': 'Player 1'}, 'room': 'avatar_room'}
-        if not self.agent.is_interaction_allowed():
-            # The agent finishes the game after sufficient number of interactions
-            guessed_room = self.agent.get_prediction()
-            self.__send_done_command(guessed_room, room_name)
-        if "move" in actions:
-            command = actions["move"]
-            self.__send_command(command, room_name)
-        if "response" in actions:
-            response = actions["response"]
-            self.__send_message(response, room_name)
+            # {'command': 'done', 'user': {'id': 3, 'name': 'Player 1'}, 'room': 'avatar_room'}
+            if not self.agent.is_interaction_allowed():
+                self.__send_done_command(room_name)
+
+            if "move" in actions:
+                command = actions["move"]
+                self.__send_command(command, room_name)
+            if "response" in actions:
+                response = actions["response"]
+                self.__send_message(response, room_name)
 
     def __send_message(self, message, room_name):
         self.emit("text", {'room': room_name, 'msg': message}, check_error_callback)
 
-    def __send_done_command(self, guessed_room, room_name):
-        self.emit("message_command", {'room': room_name, 'command': {"msg":"done", 'guessed_room': guessed_room }}, check_error_callback)
+    def __send_done_command(self, room_name):
+        self.active = False
+        # The agent finishes the game after sufficient number of interactions
+        guessed_room = self.agent.get_prediction()
+        number_interactions = self.agent.get_number_of_interaction()
+        current_candidate_similarity = self.agent.get_current_candidate_similarity()
+        self.emit("message_command", {'room': room_name,
+                                      'command': {"msg": "done",
+                                                  'guessed_room': guessed_room,
+                                                  'number_of_interaction': number_interactions,
+                                                  'current_candidate_similarity': current_candidate_similarity
+                                                  }},
+                  check_error_callback)
 
     def __send_command(self, command, room_name):
         self.emit("message_command", {'room': room_name, 'command': command}, check_error_callback)

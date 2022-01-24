@@ -12,6 +12,7 @@ import click
 import socketIO_client
 
 from avatar_sgg.game_avatar import SimpleAvatar
+from avatar_sgg.game_avatar_baseline import BaselineAvatar
 from avatar_sgg.game_avatar_slurk import AvatarBot
 
 
@@ -65,7 +66,8 @@ def start_and_wait(name, token, slurk_host, slurk_context, slurk_port, image_dir
     print("Try to connect to: ", socket_url)
     sio = socketIO_client.SocketIO(socket_url, slurk_port, headers=custom_headers, Namespace=AvatarBot)
     # NOTE: YOU SHOULD REFERENCE YOUR MODEL HERE
-    avatar_model = SimpleAvatar(image_directory)
+    #avatar_model = SimpleAvatar(image_directory)
+    avatar_model = BaselineAvatar(image_directory)
     sio.get_namespace().set_agent(avatar_model)
     print("Connected and everything set. Waiting for incoming traffic...")
     sio.wait()

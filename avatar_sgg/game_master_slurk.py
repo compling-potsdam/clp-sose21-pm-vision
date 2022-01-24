@@ -48,7 +48,9 @@ class GameMaster(socketIO_client.BaseNamespace):
         self.map_height = map_size
         self.map_rooms = rooms
         self.map_types_to_repeat = [ambiguity, ambiguity]
-        self.emit("ready")  # invokes on_joined_room for the token room so we can get the user.id
+        self.emit("ready")
+        self.map_nodes = None
+        # invokes on_joined_room for the token room so we can get the user.id
 
     def __print(self, *message):
         """
@@ -58,7 +60,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         :return:
         """
         if self.debug:
-            print(message)
+            print(*message)
 
     def set_base_image_url(self, base_image_url: str):
         self.base_image_url = base_image_url
@@ -124,6 +126,18 @@ class GameMaster(socketIO_client.BaseNamespace):
         if observation:
             self.__send_observation(observation, game.room, user["id"], game.is_avatar(user["id"]))
 
+    def __get_player_room(self, game):
+
+        player_id = 0
+        for user_id in game.get_players():
+            if not game.is_avatar(user_id):
+                player_id = user_id
+                break
+        player_observation = game.get_observation(player_id)
+        player_instance = player_observation["instance"]
+
+        return player_instance
+
     def __control_game(self, command: str, user: dict, game: MapWorldGame):
         """
             Actions performed by the player.
@@ -151,15 +165,15 @@ class GameMaster(socketIO_client.BaseNamespace):
                     game.room, user["id"])
         else:
             if type(command) is dict and command["msg"] == "done":
-                player_id = 0
-                for user_id in game.get_players():
-                    if not game.is_avatar(user_id):
-                        player_id = user_id
-                        break
+                player_room = self.__get_player_room(game)
+                #TODO handle the case when we don't provide the room with the player
+                game_success = player_room == command["guessed_room"]
 
-                player_observation = game.get_observation(player_id)
-                player_instance = player_observation["instance"]
-                game_success = player_instance == command["guessed_room"]
+                if command["guessed_room"] is None:
+                    # This is of for the avatar to return None if we didn't communicate the
+                    # room of the player.
+                    game_success = player_room not in self.map_nodes.values()
+
                 self.__print("Guessed room", command["guessed_room"])
                 self.__end_avatar_game(user, game, game_success)
 
@@ -262,16 +276,31 @@ class GameMaster(socketIO_client.BaseNamespace):
                 "The game already ended. Type /start if you want to play again.", game.room, user["id"])
             return
         user_ids = game.get_players()
+        player_room = self.__get_player_room(game)
+        player_room_disclosed_to_avatar = player_room in self.map_nodes.values()
+
         for user_id in user_ids:
             if game_success:
                 if game.is_avatar(user_id):
-                    self.__send_private_message(
-                        "You guessed the players location. Hurray!"
-                        "Wait for the player to /start the game.", game.room, user_id)
+
+
+                    if player_room_disclosed_to_avatar:
+                        self.__send_private_message(
+                            "You guessed the player's location. Hurray!"
+                            "Wait for the player to /start the game.", game.room, user_id)
+                    else:
+                        self.__send_private_message(
+                            "Somehow, you knew you had to look further to rescue the player. Hurray!"
+                            "Wait for the player to /start the game.", game.room, user_id)
                 else:
-                    self.__send_private_message(
-                        "Congrats, you'll survive! The rescue robot identified your location and will reach it with the medicine. "
-                        "Type /start if you want to get lost again.", game.room, user_id)
+                    if player_room_disclosed_to_avatar:
+                        self.__send_private_message(
+                            "Congrats, you'll survive! The rescue robot identified your location and will reach it with the medicine. "
+                            "Type /start if you want to get lost again.", game.room, user_id)
+                    else:
+                        self.__send_private_message(
+                            "Congrats, you'll survive! The rescue robot still needs to identify your location but it's really near and will reach it with the medicine. "
+                            "Type /start if you want to get lost again.", game.room, user_id)
             else:
                 if game.is_avatar(user_id):
                     self.__send_private_message(
@@ -336,6 +365,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                     "I'm afraid, you don't have a human detector attached, so the other one has to decide, " \
                     "if you can recognize the location out of a list of room. Therefore listen carefully to the instructions..."
                 map_nodes = self._get_map_nodes(game)
+                self.map_nodes = map_nodes
                 self.__send_private_message({"start_game": avatar_msg, "map_nodes": map_nodes}, game.room, user_id)
                 #self.__send_map_message(avatar_msg, game.room, user_id, "test")
                 # self.__send_private_message({"msg": avatar_msg, "map_nodes": game.mapworld.nodes},
