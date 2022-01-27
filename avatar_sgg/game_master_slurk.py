@@ -347,10 +347,13 @@ class GameMaster(socketIO_client.BaseNamespace):
 
         player_observation = game.get_observation(player_id)
 
-        if self.include_player_room:
-            map_nodes = {k : n["instance"] for k, n in enumerate(game.mapworld.nodes)}
-        else:
-            map_nodes = {k: n["instance"] for k, n in enumerate(game.mapworld.nodes) if player_observation["instance"] != n["instance"]}
+        map_nodes = {k: n["instance"] for k, n in enumerate(game.mapworld.nodes)}
+        if not self.include_player_room:
+            # We do that randomly, such as not to introduce a bias (for example, giving bad description to
+            # force the avatar not returning anything meaningful)
+            coin_toss = random.uniform(0, 1)
+            if coin_toss > 0.5:
+                map_nodes = {k: n["instance"] for k, n in enumerate(game.mapworld.nodes) if player_observation["instance"] != n["instance"]}
         room_number = len(map_nodes)
         choice = int(room_number*self.room_list/100)
         chosen_entries = random.sample(list(map_nodes), choice)
