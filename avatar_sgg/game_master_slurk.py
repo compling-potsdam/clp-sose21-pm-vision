@@ -50,6 +50,7 @@ class GameMaster(socketIO_client.BaseNamespace):
         self.map_types_to_repeat = [ambiguity, ambiguity]
         self.emit("ready")
         self.map_nodes = None
+        self.player_room_disclosed = False
         # invokes on_joined_room for the token room so we can get the user.id
 
     def __print(self, *message):
@@ -307,7 +308,7 @@ class GameMaster(socketIO_client.BaseNamespace):
                         "The player will die horribly, because you were not able to identify his location."
                         "Wait for the player to /start the game.", game.room, user_id)
                 else:
-                    self.__send_private_message("The rescue robot was not able to identify your location. You die horribly. Sorry. "
+                    self.__send_private_message("The rescue robot was not able to identify your location.  You die horribly. Sorry. "
                                                 "Type /start if you want to get lost again.", game.room, user_id)
         game.set_done()
 
@@ -331,9 +332,10 @@ class GameMaster(socketIO_client.BaseNamespace):
                                         game.room, user["id"])
 
 
-    def _get_map_nodes(self, game: MapWorldGame):
+    def _set_map_nodes(self, game: MapWorldGame):
         """
-        Returns a number of rooms based on the game configuration.
+        Creates a number of rooms based on the game configuration.
+        Also set whether the player room is included or not under self.player_room_disclosed.
         See "include_player_room" and "room_list" in config.yaml, under  "avatar".
         :param game:
         :return:
@@ -357,8 +359,10 @@ class GameMaster(socketIO_client.BaseNamespace):
         room_number = len(map_nodes)
         choice = int(room_number*self.room_list/100)
         chosen_entries = random.sample(list(map_nodes), choice)
-        map_nodes = {int(i): map_nodes[e] for i, e in enumerate(chosen_entries)}
-        return map_nodes
+        self.map_nodes = {int(i): map_nodes[e] for i, e in enumerate(chosen_entries)}
+        self.player_room_disclosed = player_observation["instance"] in map_nodes.values()
+
+
 
     def __start_game(self, game: MapWorldGame):
         game.reset(self.map_width, self.map_height, self.map_rooms, self.map_types_to_repeat)
@@ -367,9 +371,8 @@ class GameMaster(socketIO_client.BaseNamespace):
                 avatar_msg =                     "You are a rescue bot. A person is stuck and needs its medicine to survive. "\
                     "I'm afraid, you don't have a human detector attached, so the other one has to decide, " \
                     "if you can recognize the location out of a list of room. Therefore listen carefully to the instructions..."
-                map_nodes = self._get_map_nodes(game)
-                self.map_nodes = map_nodes
-                self.__send_private_message({"start_game": avatar_msg, "map_nodes": map_nodes}, game.room, user_id)
+                self._set_map_nodes(game)
+                self.__send_private_message({"start_game": avatar_msg, "map_nodes": self.map_nodes, "player_room_disclosed": self.player_room_disclosed}, game.room, user_id)
                 #self.__send_map_message(avatar_msg, game.room, user_id, "test")
                 # self.__send_private_message({"msg": avatar_msg, "map_nodes": game.mapworld.nodes},
                 #     game.room, user_id)

@@ -4,7 +4,8 @@ from avatar_sgg.sentence_embedding.util import vectorize_captions
 from avatar_sgg.dataset.util import get_categories
 from avatar_sgg.captioning.catr.inference import CATRInference
 import string
-
+import json
+import os
 
 def calculate_normalized_cosine_similarity_for_captions(input):
     """
@@ -270,10 +271,111 @@ def add_inferred_captions(data_split):
         output = catr.infer(path)
         data_split[path]["caption"].append(output)
 
+def read_game_logs(file_path):
+    """
+    It returns a dictionary where each key holds information for a particular (finished) game session.
+    General statistics about the game session are provided: score, the number of questions asked by the player,
+    the number of orders and whole messages during the game session
+    :param file_path:
+    :return:
+    """
 
-if __name__ == "__main__":
-    print("Start")
-    import os
+    if os.path.isfile(file_path):
+        with open(file_path, "r") as read_file:
+            log = json.load(read_file)
+        # event_type = set([e["event"] for e in log ])
+        # the event types: command, text_message, set_attribute, join
+        # print("event types", event_type)
+
+        # sort all messages chronologically
+        log.sort(key=lambda x: x["date_modified"])
+
+        start = None
+        end = None
+        real_end = None  # WHen The came master says COngrats or you die, because rest of the messages looks like bugs...
+        episode_list = []
+        length = len(log)
+        game_finished = False
+        # Episode are being searched between 2 starts commands
+        # only the one where the command done has been issued is kept
+        for i, l in enumerate(log):
+            if "command" in l.keys():
+                if l["command"] == "start":
+                    if start == None:
+                        start = i
+                    elif end == None:
+                        end = i
+                if type(l["command"]) is dict:
+                    game_finished = True
+
+            if l["user"]["id"] == 1 and l["event"] == "text_message" and type(l["message"]) is str and (
+                    l["message"].startswith("Congrats") or l["message"].startswith(
+                "The rescue robot was not able to identify your location.")):
+                real_end = i + 1  # +1 because we want to include this message in the log slice...
+            if start is not None and end is not None:
+                if game_finished:
+                    episode_list.append(log[start:real_end])
+                start = end
+                end = None
+                real_end = None
+                game_finished = False
+
+            if i + 1 == length:
+                if start is not None and end is None and game_finished:
+                    episode_list.append(log[start:real_end])
+
+        score_list = {}
+        # Within each episode, these are the only 2 entries that I care about:
+        #
+        # {'current_candidate_similarity': 0.6925256848335266, 'guessed_room': 'k/kitchen/ADE_train_00010362.jpg', 'msg': 'done', 'number_of_interaction': 2}
+        # {'map_nodes': {'0': 'p/parking_garage/outdoor/ADE_train_00015105.jpg', '1': 'k/kitchen/ADE_train_00010362.jpg', '2': 'k/kitchen/ADE_train_00010338.jpg', '3': 'r/restroom/outdoor/ADE_train_00015844.jpg', '4': 'j/jacuzzi/indoor/ADE_train_00009927.jpg', '5': 's/shower/ADE_train_00016282.jpg', '6': 'r/restroom/outdoor/ADE_train_00015844.jpg', '7': 'j/jacuzzi/indoor/ADE_train_00009928.jpg'}, 'start_game': "You are a rescue bot. A person is stuck and needs its medicine to survive. I'm afraid, you don't have a human detector attached, so the other one has to decide, if you can recognize the location out of a list of room. Therefore listen carefully to the instructions..."}
+        # Optional: what the human player inputs.
+        for i, e in enumerate(episode_list):
+            # the number of answers the avatar utters gives us the number of question asked
+            # num_questions = sum(
+            #     [1 for m in e if m["user"]["name"] == "Avatar" and m["event"] == "text_message"])
+
+            sent_game_map = [m["data"]["message"]["map_nodes"] for m in e if "data" in m.keys() and "message" in m["data"].keys() and type(m["data"]["message"]) is dict and "map_nodes" in m["data"]["message"].keys()][0]
+
+            # Just sum every messages ending with a question mark issueed by the user...
+            num_questions = sum([1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
+                "event"] == "text_message" and type(m["message"]) is str and m["message"].endswith("?")])
+
+            # user id 1 is alway the game master, we are looping here on the messages of the "real" player
+            # when we tell the avatar to change location, we don't get an answer, this is why the substraction gives the number of orders
+            # this does not include the order "done"
+            # num_orders = sum(
+            #     [1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
+            #         "event"] == "text_message"]) - num_questions
+
+            # Just sum every order of type "go west". Describe orders are not counted.
+            num_orders = sum([1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
+                "event"] == "text_message" and type(m["message"]) is str and (
+                                      "east" in m["message"].lower() or "north" in m["message"].lower() or "west" in m[
+                                  "message"].lower() or "south" in m["message"].lower() or "back" in m["message"].lower())])
+
+            game_won = sum([1 for m in e if m["user"]["id"] == 1 and m[
+                "event"] == "text_message" and type(m["message"]) is str and m["message"].startswith("Congrats")]) > 0
+
+            # Work-Around - the final reward giving +1.0 on success and -1.0 on loss happens after the messages
+            # Saying "congratulations" or "you die horribly" just repeating the message when the game starts.
+            # We had to exclude that message to segment finished games but this is why we have to add these rewards here manually...
+
+            final_reward = -1.0
+            if game_won:
+                final_reward = 1.0
+            score_list[i] = {"score": sum([m["message"]["observation"]["reward"] for m in e if
+                                           "message" in m.keys() and type(m["message"]) is dict])+final_reward,
+                             "num_questions": num_questions, "num_orders": num_orders, "game_session": e,
+                             "game_won": game_won}
+
+        return score_list
+
+    else:
+        raise Exception(f"{file_path} is not a correct file path.")
+
+
+def test_cosine():
     from avatar_sgg.config.util import get_config
     from avatar_sgg.dataset.util import get_ade20k_split
 
@@ -287,4 +389,11 @@ if __name__ == "__main__":
     query = stacked_vectors[0, 1, :]
     similarity = calculate_normalized_cosine_similarity(first_embeds, query)
     values, ranks = torch.topk(similarity, 1, dim=0)
+    print(values, ranks)
+
+if __name__ == "__main__":
+    print("Start")
+    #test_cosine()
+    log_file = "/home/rafi/PycharmProjects/clp-sose21-pm-vision/results/slurk_logs/sgg_test.txt"
+    read_game_logs(log_file)
     print("End")
