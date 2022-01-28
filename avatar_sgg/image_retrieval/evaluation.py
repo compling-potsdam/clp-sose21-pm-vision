@@ -324,7 +324,7 @@ def read_game_logs(file_path):
                 if start is not None and end is None and game_finished:
                     episode_list.append(log[start:real_end])
 
-        score_list = {}
+        score_list = []
         # Within each episode, these are the only 2 entries that I care about:
         #
         # {'current_candidate_similarity': 0.6925256848335266, 'guessed_room': 'k/kitchen/ADE_train_00010362.jpg', 'msg': 'done', 'number_of_interaction': 2}
@@ -335,7 +335,17 @@ def read_game_logs(file_path):
             # num_questions = sum(
             #     [1 for m in e if m["user"]["name"] == "Avatar" and m["event"] == "text_message"])
 
-            sent_game_map = [m["data"]["message"]["map_nodes"] for m in e if "data" in m.keys() and "message" in m["data"].keys() and type(m["data"]["message"]) is dict and "map_nodes" in m["data"]["message"].keys()][0]
+            extract_map_node_info = lambda message_key: [m["data"]["message"][message_key] for m in e if "data" in m.keys() and "message" in m["data"].keys() and type(m["data"]["message"]) is dict and message_key in m["data"]["message"].keys()]
+            extract_first_element = lambda l: l[0] if len(l) > 0 else None
+            map_nodes = extract_first_element(extract_map_node_info("map_nodes"))
+            player_room_disclosed = bool(extract_first_element(extract_map_node_info("player_room_disclosed")))
+            extract_last_command_data = lambda message_key: [m["command"][message_key] for m in e if "command" in m.keys() and type(m["command"]) is dict and message_key in m["command"].keys()]
+            guessed_room = extract_first_element(extract_last_command_data("guessed_room"))
+            number_of_interaction = extract_first_element(extract_last_command_data("number_of_interaction"))
+            game_won = sum([1 for m in e if m["user"]["id"] == 1 and m[
+                "event"] == "text_message" and type(m["message"]) is str and m["message"].startswith("Congrats")]) > 0
+
+            score_list.append({"game_won": game_won, "number_of_interaction": number_of_interaction, "guessed_room": guessed_room, player_room_disclosed : "player_room_disclosed"})
 
             # Just sum every messages ending with a question mark issueed by the user...
             num_questions = sum([1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
@@ -354,20 +364,6 @@ def read_game_logs(file_path):
                                       "east" in m["message"].lower() or "north" in m["message"].lower() or "west" in m[
                                   "message"].lower() or "south" in m["message"].lower() or "back" in m["message"].lower())])
 
-            game_won = sum([1 for m in e if m["user"]["id"] == 1 and m[
-                "event"] == "text_message" and type(m["message"]) is str and m["message"].startswith("Congrats")]) > 0
-
-            # Work-Around - the final reward giving +1.0 on success and -1.0 on loss happens after the messages
-            # Saying "congratulations" or "you die horribly" just repeating the message when the game starts.
-            # We had to exclude that message to segment finished games but this is why we have to add these rewards here manually...
-
-            final_reward = -1.0
-            if game_won:
-                final_reward = 1.0
-            score_list[i] = {"score": sum([m["message"]["observation"]["reward"] for m in e if
-                                           "message" in m.keys() and type(m["message"]) is dict])+final_reward,
-                             "num_questions": num_questions, "num_orders": num_orders, "game_session": e,
-                             "game_won": game_won}
 
         return score_list
 
