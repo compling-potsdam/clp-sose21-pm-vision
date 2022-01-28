@@ -351,7 +351,7 @@ class GameMaster(socketIO_client.BaseNamespace):
 
         map_nodes = {k: n["instance"] for k, n in enumerate(game.mapworld.nodes)}
         if not self.include_player_room:
-            # We do that randomly, such as not to introduce a bias (for example, giving bad description to
+            # We do that randomly, to avoid a bias (for example, giving bad description to
             # force the avatar not returning anything meaningful)
             coin_toss = random.uniform(0, 1)
             if coin_toss > 0.5:
