@@ -139,10 +139,10 @@ class BaselineAvatar(Avatar):
         self.observation = observation
 
     def __update_actions(self, actions, message):
-        if "go" in message.lower():
-            actions["move"] = self.__predict_move_action(message)
-        else:
-            actions["response"] = self.__generate_response(message)
+        # if "go" in message.lower():
+        #     actions["move"] = self.__predict_move_action(message)
+        # else:
+        actions["response"] = self.__generate_response(message)
 
     def __set_room_found(self):
 
