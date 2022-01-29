@@ -6,7 +6,8 @@ from avatar_sgg.captioning.catr.inference import CATRInference
 import string
 import json
 import os
-
+from os import walk
+import pandas as pd
 def calculate_normalized_cosine_similarity_for_captions(input):
     """
     Input has the dimensions: number of entries * 2 * vector dimension
@@ -271,6 +272,7 @@ def add_inferred_captions(data_split):
         output = catr.infer(path)
         data_split[path]["caption"].append(output)
 
+
 def read_game_logs(file_path):
     """
     It returns a dictionary where each key holds information for a particular (finished) game session.
@@ -335,17 +337,29 @@ def read_game_logs(file_path):
             # num_questions = sum(
             #     [1 for m in e if m["user"]["name"] == "Avatar" and m["event"] == "text_message"])
 
-            extract_map_node_info = lambda message_key: [m["data"]["message"][message_key] for m in e if "data" in m.keys() and "message" in m["data"].keys() and type(m["data"]["message"]) is dict and message_key in m["data"]["message"].keys()]
+            extract_map_node_info = lambda message_key: [m["data"]["message"][message_key] for m in e if
+                                                         "data" in m.keys() and "message" in m["data"].keys() and type(
+                                                             m["data"]["message"]) is dict and message_key in m["data"][
+                                                             "message"].keys()]
             extract_first_element = lambda l: l[0] if len(l) > 0 else None
             map_nodes = extract_first_element(extract_map_node_info("map_nodes"))
             player_room_disclosed = bool(extract_first_element(extract_map_node_info("player_room_disclosed")))
-            extract_last_command_data = lambda message_key: [m["command"][message_key] for m in e if "command" in m.keys() and type(m["command"]) is dict and message_key in m["command"].keys()]
+            extract_last_command_data = lambda message_key: [m["command"][message_key] for m in e if
+                                                             "command" in m.keys() and type(
+                                                                 m["command"]) is dict and message_key in m[
+                                                                 "command"].keys()]
             guessed_room = extract_first_element(extract_last_command_data("guessed_room"))
             number_of_interaction = extract_first_element(extract_last_command_data("number_of_interaction"))
+            current_candidate_similarity = extract_first_element(
+                extract_last_command_data("current_candidate_similarity"))
             game_won = sum([1 for m in e if m["user"]["id"] == 1 and m[
                 "event"] == "text_message" and type(m["message"]) is str and m["message"].startswith("Congrats")]) > 0
-
-            score_list.append({"game_won": game_won, "number_of_interaction": number_of_interaction, "guessed_room": guessed_room, player_room_disclosed : "player_room_disclosed"})
+            if guessed_room is None:
+                current_candidate_similarity = 0.0
+            score_list.append(
+                {"game_won": game_won, "number_of_interaction": number_of_interaction, "guessed_room": guessed_room,
+                 'player_room_disclosed': bool(player_room_disclosed),
+                 'current_candidate_similarity': current_candidate_similarity})
 
             # Just sum every messages ending with a question mark issueed by the user...
             num_questions = sum([1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
@@ -362,14 +376,29 @@ def read_game_logs(file_path):
             num_orders = sum([1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
                 "event"] == "text_message" and type(m["message"]) is str and (
                                       "east" in m["message"].lower() or "north" in m["message"].lower() or "west" in m[
-                                  "message"].lower() or "south" in m["message"].lower() or "back" in m["message"].lower())])
-
+                                  "message"].lower() or "south" in m["message"].lower() or "back" in m[
+                                          "message"].lower())])
 
         return score_list
 
     else:
         raise Exception(f"{file_path} is not a correct file path.")
 
+
+def merge_log_results_in_directory(dir_path):
+    """
+    Merge all game results in pandas frame.
+    :param dir_path:
+    :return:
+    """
+    _, _, filenames = next(walk(dir_path))
+    all_scores = []
+    for f in filenames:
+        scores = read_game_logs(os.path.join(dir_path, f))
+        all_scores.extend(scores)
+    df = pd.DataFrame(all_scores)
+
+    return df
 
 def test_cosine():
     from avatar_sgg.config.util import get_config
@@ -387,9 +416,10 @@ def test_cosine():
     values, ranks = torch.topk(similarity, 1, dim=0)
     print(values, ranks)
 
+
 if __name__ == "__main__":
     print("Start")
-    #test_cosine()
-    log_file = "/home/rafi/PycharmProjects/clp-sose21-pm-vision/results/slurk_logs/sgg_test.txt"
-    read_game_logs(log_file)
+    # test_cosine()
+    log_path = "/home/rafi/PycharmProjects/clp-sose21-pm-vision/results/slurk_logs/baseline/"
+    df = merge_log_results_in_directory(log_path)
     print("End")
