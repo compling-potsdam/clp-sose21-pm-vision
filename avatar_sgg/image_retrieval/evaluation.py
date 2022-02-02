@@ -180,9 +180,9 @@ def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall
 
 def compute_average_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
-    Pre-requisite. The ade20k_split has been enriched with 'add_inferred_captions()'. The synthetic caption are used as
-    query to retrieve the images based on the human captions. The results are averaged by the number of human captions
-    available (2 only)
+    Pre-requisite. The ade20k_split has been enriched with 'add_inferred_captions()'. The synthetic caption (always
+    added at the end of the human captions) are used as query to retrieve the images based on the human captions.
+    The results are averaged by the number of human captions available.
     :param ade20k_split:
     :param threshold:
     :param recall_funct:
@@ -193,38 +193,42 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
     stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
     category = get_categories(ade20k_split)
 
-    index_caption_1 = 0
-    index_caption_2 = 1
-    index_inferred_caption = 2
+    num_captions = stacked_vectors.shape[1]
+    index_inferred_caption = num_captions - 1
+    index_range_human_captions = num_captions - 1
+
     caption_dim = 1
+    recall_list = []
+    mean_rank_list = []
+    similarity_list = []
+    for index_caption in range(index_range_human_captions):
+        comparison = torch.cat((stacked_vectors[:, index_caption, :].unsqueeze(caption_dim),
+                                  stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)),
+                                 dim=caption_dim)
 
-    comparison_1 = torch.cat((stacked_vectors[:, index_caption_1, :].unsqueeze(caption_dim),
-                              stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)), dim=caption_dim)
-
-    comparison_2 = torch.cat((stacked_vectors[:, index_caption_2, :].unsqueeze(caption_dim),
-                              stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)), dim=caption_dim)
-
-    similarity_caption_1 = calculate_normalized_cosine_similarity_for_captions(comparison_1)
-    similarity_caption_2 = calculate_normalized_cosine_similarity_for_captions(comparison_2)
-    recall_val, mean_rank = recall_funct(similarity_caption_1, threshold, category)
-    recall_val_2, mean_rank_2 = recall_funct(similarity_caption_2, threshold, category)
+        similarity_caption = calculate_normalized_cosine_similarity_for_captions(comparison)
+        recall_val, mean_rank = recall_funct(similarity_caption, threshold, category)
+        similarity_list.append(similarity_caption.diag().mean().to("cpu").numpy())
+        recall_list.append(recall_val)
+        mean_rank_list.append(mean_rank)
 
     print(f"Threshold for retrieval: {threshold}")
-    for k in recall_val.keys():
-        print(f"Average {k}: {(recall_val[k] + recall_val_2[k]) / 2}")
 
-    average_mean_rank = ((mean_rank + mean_rank_2) / 2)
-    recall_val["mean_rank"] = average_mean_rank
+    recall_mean = pd.DataFrame(recall_list).mean().to_dict()
+    average_mean_rank = pd.DataFrame(mean_rank_list).mean()[0]
+    average_similarity = pd.DataFrame(similarity_list).mean()[0]
+    for k in recall_mean.keys():
+        print(f"Average {k}: {recall_mean[k]}")
+
+    recall_mean["mean_rank"] = average_mean_rank
 
     print(f"Average Mean Rank: {average_mean_rank}")
-    average_similarity = ((similarity_caption_1.diag().mean() + similarity_caption_2.diag().mean()) / 2).to(
-        "cpu").numpy()
+
     print(f"Average Similarity{average_similarity}")
 
-    recall_val["average_similarity"] = average_similarity
-    recall_val["threshold"] = threshold
-
-    return recall_val
+    recall_mean["average_similarity"] = average_similarity
+    recall_mean["threshold"] = threshold
+    return recall_mean
 
 
 def merge_human_captions(data_split):

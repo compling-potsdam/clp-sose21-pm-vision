@@ -84,7 +84,8 @@ def get_ade20k_split(test_proportion: int = 15, test_size: int = 10):
 
 def get_categories(split):
     cat = {}
-    if "category" in split[0].keys():
+    one_key = list(split.keys())[0]
+    if "category" in split[one_key].keys():
         cat = {i: split[k]["category"] for i, k in enumerate(split)}
     return cat
 
@@ -112,7 +113,7 @@ class SceneGraphDataset(data.Dataset):
 
 
         self.coco_ids_to_image_path = {
-            str(self.image_data[i]["coco_id"]): os.path.join(image_dir, str(self.image_data[i]["image_id"]) + "jpg") for
+            str(self.image_data[i]["coco_id"]): os.path.join(image_dir, str(self.image_data[i]["image_id"]) + ".jpg") for
         i, entry
             in enumerate(self.cap_graph["vg_coco_ids"]) if entry > -1}
 
@@ -145,7 +146,8 @@ class SceneGraphDataset(data.Dataset):
 class SimpleCollator(object):
     def __call__(self, batch):
 
-        glue = {path:{"captions": captions} for path, captions in batch}
+        # Just use 5 captions to ease the use for tensors later on
+        glue = {path:{"caption": captions[:5]} for path, captions in batch}
 
         return glue
 
