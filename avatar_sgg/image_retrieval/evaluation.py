@@ -416,6 +416,21 @@ def test_cosine():
     values, ranks = torch.topk(similarity, 1, dim=0)
     print(values, ranks)
 
+def run_evaluation(evaluation_name, split, similarity_function, threshold_list, recall_function, output_dir):
+    values = []
+    print(f"\n############## Start Evaluation: {evaluation_name} ############## ")
+    for t in threshold_list:
+        print("\n")
+        print(f"Threshold: {t}")
+        val = similarity_function(split, t, recall_function)
+        values.append(val)
+        print("\n")
+    print(f"############## End Evaluation: {evaluation_name} ############## ")
+    df = pd.DataFrame(values)
+    output_path = os.path.join(output_dir, evaluation_name + ".csv")
+    print(f"Saving data to {output_path}")
+    df.to_csv(output_path)
+
 
 if __name__ == "__main__":
     print("Start")

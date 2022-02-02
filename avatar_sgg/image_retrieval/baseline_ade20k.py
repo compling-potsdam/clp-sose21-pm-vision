@@ -2,26 +2,11 @@ from avatar_sgg.dataset.util import get_ade20k_split
 from avatar_sgg.config.util import get_config
 from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity, \
     compute_recall_on_category, compute_recall_johnson_feiefei, add_inferred_captions, merge_human_captions, \
-    use_merged_sequence
+    use_merged_sequence, run_evaluation
 import numpy as np
-import pandas as pd
 import os
 
 
-def run_evaluation(evaluation_name, split, similarity_function, threshold_list, recall_function, output_dir):
-    values = []
-    print(f"\n############## Start Evaluation: {evaluation_name} ############## ")
-    for t in threshold_list:
-        print("\n")
-        print(f"Threshold: {t}")
-        val = similarity_function(split, t, recall_function)
-        values.append(val)
-        print("\n")
-    print(f"############## End Evaluation: {evaluation_name} ############## ")
-    df = pd.DataFrame(values)
-    output_path = os.path.join(output_dir, evaluation_name + ".csv")
-    print(f"Saving data to {output_path}")
-    df.to_csv(output_path)
 
 
 if __name__ == "__main__":

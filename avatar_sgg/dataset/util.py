@@ -83,8 +83,10 @@ def get_ade20k_split(test_proportion: int = 15, test_size: int = 10):
 
 
 def get_categories(split):
-    return {i: split[k]["category"] for i, k in enumerate(split)}
-
+    cat = {}
+    if "category" in split[0].keys():
+        cat = {i: split[k]["category"] for i, k in enumerate(split)}
+    return cat
 
 def group_entry_per_category(category):
     category_to_entry_lookup = collections.defaultdict(list)
@@ -143,9 +145,9 @@ class SceneGraphDataset(data.Dataset):
 class SimpleCollator(object):
     def __call__(self, batch):
 
-        #glue = list(zip(*batch))
+        glue = {path:{"captions": captions} for path, captions in batch}
 
-        return batch
+        return glue
 
 
 def get_scene_graph_splits():
