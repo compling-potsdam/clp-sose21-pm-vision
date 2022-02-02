@@ -14,11 +14,11 @@ if __name__ == "__main__":
     print("Start")
     output_dir = os.path.join(get_config()["output_dir"], "image_retrieval")
 
-    batch_size = 10
+    batch_size = 150
     train_ids, test_ids = get_scene_graph_splits()
 
-    use_test = False
-    use_val = True
+    use_test = True
+    use_val = False
     loader = get_scene_graph_loader(batch_size, train_ids, test_ids, test_on=use_test, val_on=use_val)
     _ , current = next(enumerate(loader))
 
@@ -28,14 +28,14 @@ if __name__ == "__main__":
     threshold_list.extend(np.linspace(0.55, 0.7, 15))
 
     eval_name = lambda caption_type, recall_type: f"{caption_type}_{recall_type}"
-    human_caption = "vg_human_captions_query"
+    human_caption = "vg_150_human_captions_query"
     fei_fei_recall = "feifei_johnson_recall"
-    catr_caption = "vg_catr_captions_query"
-    merged_human_caption = "vg_merged_human_caption_catr_captions_query"
+    catr_caption = "vg_150_catr_captions_query"
+    merged_human_caption = "vg_150_merged_human_caption_catr_captions_query"
 
-    add_inferred_captions(current)
+    #add_inferred_captions(current)
     evaluation_name = eval_name(human_caption, fei_fei_recall)
-    run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei,
+    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
                    output_dir)
 
 
@@ -51,11 +51,7 @@ if __name__ == "__main__":
                    output_dir)
 
 
-    evaluation_name = eval_name(merged_human_caption, fei_fei_recall)
-    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
-                   output_dir)
 
 
-    use_merged_sequence(current)
 
     print("Done")

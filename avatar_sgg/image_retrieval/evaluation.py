@@ -8,6 +8,9 @@ import json
 import os
 from os import walk
 import pandas as pd
+import itertools
+
+
 def calculate_normalized_cosine_similarity_for_captions(input):
     """
     Input has the dimensions: number of entries * 2 * vector dimension
@@ -150,7 +153,7 @@ def compute_recall_on_category(similarity, threshold, category, recall_at: list 
 
 def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
-
+    Compute the average of all pairwise combination of captions
     :param ade20k_split:
     :param threshold:
     :param recall_funct:
@@ -160,22 +163,37 @@ def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall
     stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
     category = get_categories(ade20k_split)
 
-    similarity = calculate_normalized_cosine_similarity_for_captions(stacked_vectors)
-    recall_val, mean_rank = recall_funct(similarity, threshold, category)
+    num_captions = stacked_vectors.shape[1]
+    k = 2
 
-    for k in recall_val.keys():
-        print(f"{k}: {recall_val[k]}")
+    all_caption_pairs = list(itertools.combinations(range(num_captions), k))
+    recall_list = []
+    mean_rank_list = []
+    similarity_list = []
+    for pair in all_caption_pairs:
+        similarity = calculate_normalized_cosine_similarity_for_captions(stacked_vectors[:, pair,:])
+        recall_val, mean_rank = recall_funct(similarity, threshold, category)
+        similarity_list.append(similarity.diag().mean().to("cpu").numpy())
+        recall_list.append(recall_val)
+        mean_rank_list.append(mean_rank)
 
-    recall_val["mean_rank"] = mean_rank
-    print(f"Mean Rank: {mean_rank}")
 
-    average_similarity = similarity.diag().mean().to("cpu").numpy()
+    recall_mean = pd.DataFrame(recall_list).mean().to_dict()
+    average_mean_rank = pd.DataFrame(mean_rank_list).mean()[0]
+    average_similarity = pd.DataFrame(similarity_list).mean()[0]
+
+    for k in recall_mean.keys():
+        print(f"{k}: {recall_mean[k]}")
+
+    recall_mean["mean_rank"] = average_mean_rank
+    print(f"Mean Rank: {average_mean_rank}")
+
 
     print(f"Average Similarity: {average_similarity}")
 
-    recall_val["average_similarity"] = average_similarity
-    recall_val["threshold"] = threshold
-    return recall_val
+    recall_mean["average_similarity"] = average_similarity
+    recall_mean["threshold"] = threshold
+    return recall_mean
 
 
 def compute_average_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
@@ -238,17 +256,19 @@ def merge_human_captions(data_split):
     :return:
     """
 
+    one_key = list(data_split.keys())[0]
+    num_captions = len(data_split[one_key]["caption"])
+    generated_caption_idx = num_captions - 1
+
     for path in data_split.keys():
+        human_captions = data_split[path]["caption"][:generated_caption_idx]
+        catr_caption = data_split[path]["caption"][generated_caption_idx]
+        glue = ". "
+        if human_captions[0][-1] in string.punctuation:
+            glue = " "
+        human_captions = glue.join(human_captions)
 
-        if len(data_split[path]["caption"]) == 3:
-            human_captions = data_split[path]["caption"][:2]
-            catr_caption = data_split[path]["caption"][2]
-            glue = ". "
-            if human_captions[0][-1] in string.punctuation:
-                glue = " "
-            human_captions = glue.join(human_captions)
-
-            data_split[path]["caption"] = [human_captions, catr_caption]
+        data_split[path]["caption"] = [human_captions, catr_caption]
 
 
 def use_merged_sequence(data_split):
