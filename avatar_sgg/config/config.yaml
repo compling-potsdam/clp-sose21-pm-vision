@@ -11,6 +11,16 @@ captioning:
   sentence_bert:
     cuda_device: "cuda:0"
     model: "paraphrase-MiniLM-L6-v2"
+
+scene_graph: # config files come from instructions in  https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch/
+  image_dir: "/media/rafi/Samsung_T5/_DATASETS/vg/VG_100K/"
+  capgraphs_file: "/media/rafi/Samsung_T5/_DATASETS/vg/vg_capgraphs_anno.json"
+  visual_genome_dict_file: "/media/rafi/Samsung_T5/_DATASETS/vg/VG-SGG-dicts-with-attri.json"
+  image_data: "/media/rafi/Samsung_T5/_DATASETS/vg/image_data.json"
+  train: "/media/rafi/Samsung_T5/_DATASETS/vg/sgg/train_eval/train_sg_of_causal_sgdet_ctx_only.json"
+  test: "/media/rafi/Samsung_T5/_DATASETS/vg/sgg/test_eval/test_sg_of_causal_sgdet_ctx_only.json"
+  val: "/media/rafi/Samsung_T5/_DATASETS/vg/sgg/val_eval/val_sg_of_causal_sgdet_ctx_only.json"
+
 output_dir: "/home/rafi/PycharmProjects/clp-sose21-pm-vision/results"
 
 game_setup:
