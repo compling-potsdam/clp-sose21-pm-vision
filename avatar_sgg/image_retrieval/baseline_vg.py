@@ -39,15 +39,15 @@ if __name__ == "__main__":
                    output_dir)
 
 
-    add_inferred_captions(current)
+    current_inferred = add_inferred_captions(current)
     evaluation_name = eval_name(catr_caption, fei_fei_recall)
-    run_evaluation(evaluation_name, current, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei,
+    run_evaluation(evaluation_name, current_inferred, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei,
                    output_dir)
 
 
-    merge_human_captions(current)
+    current_merged = merge_human_captions(current)
     evaluation_name = eval_name(merged_human_caption, fei_fei_recall)
-    run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
+    run_evaluation(evaluation_name, current_merged, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
                    output_dir)
 
 

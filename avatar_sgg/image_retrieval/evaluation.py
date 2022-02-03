@@ -252,38 +252,42 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
 def merge_human_captions(data_split):
     """
     Merges all Human captions together, let the CATR caption separate.
-    :param data_split:
+    :param data_split_copy:
     :return:
     """
 
-    one_key = list(data_split.keys())[0]
-    num_captions = len(data_split[one_key]["caption"])
+    data_split_copy = data_split.copy()
+    one_key = list(data_split_copy.keys())[0]
+    num_captions = len(data_split_copy[one_key]["caption"])
     generated_caption_idx = num_captions - 1
 
-    for path in data_split.keys():
-        human_captions = data_split[path]["caption"][:generated_caption_idx]
-        catr_caption = data_split[path]["caption"][generated_caption_idx]
+    for path in data_split_copy.keys():
+        human_captions = data_split_copy[path]["caption"][:generated_caption_idx]
+        catr_caption = data_split_copy[path]["caption"][generated_caption_idx]
         glue = ". "
         if human_captions[0][-1] in string.punctuation:
             glue = " "
         human_captions = glue.join(human_captions)
 
-        data_split[path]["caption"] = [human_captions, catr_caption]
+        data_split_copy[path]["caption"] = [human_captions, catr_caption]
 
-
+    return data_split_copy
 def use_merged_sequence(data_split):
     """
     Remove human captions, use the merged sequences of descriptions instead.
     Intended to use when CATR caption have been generated
-    :param data_split:
+    :param data_split_copy:
     :return:
     """
 
-    for path in data_split.keys():
-        range = len(data_split[path]["caption"])
-        catr_caption = data_split[path]["caption"][range - 1]
-        data_split[path]["caption"] = [data_split[path]["merged_sequences"], catr_caption]
+    data_split_copy = data_split.copy
 
+    for path in data_split_copy.keys():
+        range = len(data_split_copy[path]["caption"])
+        catr_caption = data_split_copy[path]["caption"][range - 1]
+        data_split_copy[path]["caption"] = [data_split_copy[path]["merged_sequences"], catr_caption]
+
+    return data_split_copy
 
 def add_inferred_captions(data_split):
     """
@@ -292,10 +296,12 @@ def add_inferred_captions(data_split):
     :return:
     """
     catr = CATRInference()
-    for path in data_split.keys():
+    data_split_copy = data_split.copy()
+    for path in data_split_copy.keys():
         output = catr.infer(path)
-        data_split[path]["caption"].append(output)
+        data_split_copy[path]["caption"].append(output)
 
+    return data_split_copy
 
 def read_game_logs(file_path):
     """
