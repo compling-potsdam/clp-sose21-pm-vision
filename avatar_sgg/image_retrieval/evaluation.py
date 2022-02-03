@@ -4,6 +4,11 @@ from avatar_sgg.sentence_embedding.util import vectorize_captions
 from avatar_sgg.dataset.util import get_categories
 from avatar_sgg.captioning.catr.inference import CATRInference
 import string
+import json
+import os
+from os import walk
+import pandas as pd
+import itertools
 
 
 def calculate_normalized_cosine_similarity_for_captions(input):
@@ -148,7 +153,7 @@ def compute_recall_on_category(similarity, threshold, category, recall_at: list 
 
 def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
-
+    Compute the average of all pairwise combination of captions
     :param ade20k_split:
     :param threshold:
     :param recall_funct:
@@ -158,29 +163,44 @@ def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall
     stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
     category = get_categories(ade20k_split)
 
-    similarity = calculate_normalized_cosine_similarity_for_captions(stacked_vectors)
-    recall_val, mean_rank = recall_funct(similarity, threshold, category)
+    num_captions = stacked_vectors.shape[1]
+    k = 2
 
-    for k in recall_val.keys():
-        print(f"{k}: {recall_val[k]}")
+    all_caption_pairs = list(itertools.combinations(range(num_captions), k))
+    recall_list = []
+    mean_rank_list = []
+    similarity_list = []
+    for pair in all_caption_pairs:
+        similarity = calculate_normalized_cosine_similarity_for_captions(stacked_vectors[:, pair,:])
+        recall_val, mean_rank = recall_funct(similarity, threshold, category)
+        similarity_list.append(similarity.diag().mean().to("cpu").numpy())
+        recall_list.append(recall_val)
+        mean_rank_list.append(mean_rank)
 
-    recall_val["mean_rank"] = mean_rank
-    print(f"Mean Rank: {mean_rank}")
 
-    average_similarity = similarity.diag().mean().to("cpu").numpy()
+    recall_mean = pd.DataFrame(recall_list).mean().to_dict()
+    average_mean_rank = pd.DataFrame(mean_rank_list).mean()[0]
+    average_similarity = pd.DataFrame(similarity_list).mean()[0]
+
+    for k in recall_mean.keys():
+        print(f"{k}: {recall_mean[k]}")
+
+    recall_mean["mean_rank"] = average_mean_rank
+    print(f"Mean Rank: {average_mean_rank}")
+
 
     print(f"Average Similarity: {average_similarity}")
 
-    recall_val["average_similarity"] = average_similarity
-    recall_val["threshold"] = threshold
-    return recall_val
+    recall_mean["average_similarity"] = average_similarity
+    recall_mean["threshold"] = threshold
+    return recall_mean
 
 
-def compute_average_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
+def compute_average_similarity_against_generated_caption(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
-    Pre-requisite. The ade20k_split has been enriched with 'add_inferred_captions()'. The synthetic caption are used as
-    query to retrieve the images based on the human captions. The results are averaged by the number of human captions
-    available (2 only)
+    Pre-requisite. The ade20k_split has been enriched with 'add_inferred_captions()'. The synthetic caption (always
+    added at the end of the human captions) are used as query to retrieve the images based on the human captions.
+    The results are averaged by the number of human captions available.
     :param ade20k_split:
     :param threshold:
     :param recall_funct:
@@ -191,73 +211,83 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
     stacked_vectors = vectorize_captions(ade20k_split, vectorizer)
     category = get_categories(ade20k_split)
 
-    index_caption_1 = 0
-    index_caption_2 = 1
-    index_inferred_caption = 2
+    num_captions = stacked_vectors.shape[1]
+    index_inferred_caption = num_captions - 1
+    index_range_human_captions = index_inferred_caption
+
     caption_dim = 1
+    recall_list = []
+    mean_rank_list = []
+    similarity_list = []
+    for index_caption in range(index_range_human_captions):
+        comparison = torch.cat((stacked_vectors[:, index_caption, :].unsqueeze(caption_dim),
+                                  stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)),
+                                 dim=caption_dim)
 
-    comparison_1 = torch.cat((stacked_vectors[:, index_caption_1, :].unsqueeze(caption_dim),
-                              stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)), dim=caption_dim)
-
-    comparison_2 = torch.cat((stacked_vectors[:, index_caption_2, :].unsqueeze(caption_dim),
-                              stacked_vectors[:, index_inferred_caption, :].unsqueeze(caption_dim)), dim=caption_dim)
-
-    similarity_caption_1 = calculate_normalized_cosine_similarity_for_captions(comparison_1)
-    similarity_caption_2 = calculate_normalized_cosine_similarity_for_captions(comparison_2)
-    recall_val, mean_rank = recall_funct(similarity_caption_1, threshold, category)
-    recall_val_2, mean_rank_2 = recall_funct(similarity_caption_2, threshold, category)
+        similarity_caption = calculate_normalized_cosine_similarity_for_captions(comparison)
+        recall_val, mean_rank = recall_funct(similarity_caption, threshold, category)
+        similarity_list.append(similarity_caption.diag().mean().to("cpu").numpy())
+        recall_list.append(recall_val)
+        mean_rank_list.append(mean_rank)
 
     print(f"Threshold for retrieval: {threshold}")
-    for k in recall_val.keys():
-        print(f"Average {k}: {(recall_val[k] + recall_val_2[k]) / 2}")
 
-    average_mean_rank = ((mean_rank + mean_rank_2) / 2)
-    recall_val["mean_rank"] = average_mean_rank
+    recall_mean = pd.DataFrame(recall_list).mean().to_dict()
+    average_mean_rank = pd.DataFrame(mean_rank_list).mean()[0]
+    average_similarity = pd.DataFrame(similarity_list).mean()[0]
+    for k in recall_mean.keys():
+        print(f"Average {k}: {recall_mean[k]}")
+
+    recall_mean["mean_rank"] = average_mean_rank
 
     print(f"Average Mean Rank: {average_mean_rank}")
-    average_similarity = ((similarity_caption_1.diag().mean() + similarity_caption_2.diag().mean()) / 2).to(
-        "cpu").numpy()
+
     print(f"Average Similarity{average_similarity}")
 
-    recall_val["average_similarity"] = average_similarity
-    recall_val["threshold"] = threshold
-
-    return recall_val
+    recall_mean["average_similarity"] = average_similarity
+    recall_mean["threshold"] = threshold
+    return recall_mean
 
 
 def merge_human_captions(data_split):
     """
     Merges all Human captions together, let the CATR caption separate.
-    :param data_split:
+    :param data_split_copy:
     :return:
     """
 
-    for path in data_split.keys():
+    data_split_copy = data_split.copy()
+    one_key = list(data_split_copy.keys())[0]
+    num_captions = len(data_split_copy[one_key]["caption"])
+    generated_caption_idx = num_captions - 1
 
-        if len(data_split[path]["caption"]) == 3:
-            human_captions = data_split[path]["caption"][:2]
-            catr_caption = data_split[path]["caption"][2]
-            glue = ". "
-            if human_captions[0][-1] in string.punctuation:
-                glue = " "
-            human_captions = glue.join(human_captions)
+    for path in data_split_copy.keys():
+        human_captions = data_split_copy[path]["caption"][:generated_caption_idx]
+        catr_caption = data_split_copy[path]["caption"][generated_caption_idx]
+        glue = ". "
+        if human_captions[0][-1] in string.punctuation:
+            glue = " "
+        human_captions = glue.join(human_captions)
 
-            data_split[path]["caption"] = [human_captions, catr_caption]
+        data_split_copy[path]["caption"] = [human_captions, catr_caption]
 
-
+    return data_split_copy
 def use_merged_sequence(data_split):
     """
     Remove human captions, use the merged sequences of descriptions instead.
     Intended to use when CATR caption have been generated
-    :param data_split:
+    :param data_split_copy:
     :return:
     """
 
-    for path in data_split.keys():
-        range = len(data_split[path]["caption"])
-        catr_caption = data_split[path]["caption"][range - 1]
-        data_split[path]["caption"] = [data_split[path]["merged_sequences"], catr_caption]
+    data_split_copy = data_split.copy
 
+    for path in data_split_copy.keys():
+        range = len(data_split_copy[path]["caption"])
+        catr_caption = data_split_copy[path]["caption"][range - 1]
+        data_split_copy[path]["caption"] = [data_split_copy[path]["merged_sequences"], catr_caption]
+
+    return data_split_copy
 
 def add_inferred_captions(data_split):
     """
@@ -266,14 +296,141 @@ def add_inferred_captions(data_split):
     :return:
     """
     catr = CATRInference()
-    for path in data_split.keys():
+    data_split_copy = data_split.copy()
+    for path in data_split_copy.keys():
         output = catr.infer(path)
-        data_split[path]["caption"].append(output)
+        data_split_copy[path]["caption"].append(output)
+
+    return data_split_copy
+
+def read_game_logs(file_path):
+    """
+    It returns a dictionary where each key holds information for a particular (finished) game session.
+    General statistics about the game session are provided: score, the number of questions asked by the player,
+    the number of orders and whole messages during the game session
+    :param file_path:
+    :return:
+    """
+
+    if os.path.isfile(file_path):
+        with open(file_path, "r") as read_file:
+            log = json.load(read_file)
+        # event_type = set([e["event"] for e in log ])
+        # the event types: command, text_message, set_attribute, join
+        # print("event types", event_type)
+
+        # sort all messages chronologically
+        log.sort(key=lambda x: x["date_modified"])
+
+        start = None
+        end = None
+        real_end = None  # WHen The came master says COngrats or you die, because rest of the messages looks like bugs...
+        episode_list = []
+        length = len(log)
+        game_finished = False
+        # Episode are being searched between 2 starts commands
+        # only the one where the command done has been issued is kept
+        for i, l in enumerate(log):
+            if "command" in l.keys():
+                if l["command"] == "start":
+                    if start == None:
+                        start = i
+                    elif end == None:
+                        end = i
+                if type(l["command"]) is dict:
+                    game_finished = True
+
+            if l["user"]["id"] == 1 and l["event"] == "text_message" and type(l["message"]) is str and (
+                    l["message"].startswith("Congrats") or l["message"].startswith(
+                "The rescue robot was not able to identify your location.")):
+                real_end = i + 1  # +1 because we want to include this message in the log slice...
+            if start is not None and end is not None:
+                if game_finished:
+                    episode_list.append(log[start:real_end])
+                start = end
+                end = None
+                real_end = None
+                game_finished = False
+
+            if i + 1 == length:
+                if start is not None and end is None and game_finished:
+                    episode_list.append(log[start:real_end])
+
+        score_list = []
+        # Within each episode, these are the only 2 entries that I care about:
+        #
+        # {'current_candidate_similarity': 0.6925256848335266, 'guessed_room': 'k/kitchen/ADE_train_00010362.jpg', 'msg': 'done', 'number_of_interaction': 2}
+        # {'map_nodes': {'0': 'p/parking_garage/outdoor/ADE_train_00015105.jpg', '1': 'k/kitchen/ADE_train_00010362.jpg', '2': 'k/kitchen/ADE_train_00010338.jpg', '3': 'r/restroom/outdoor/ADE_train_00015844.jpg', '4': 'j/jacuzzi/indoor/ADE_train_00009927.jpg', '5': 's/shower/ADE_train_00016282.jpg', '6': 'r/restroom/outdoor/ADE_train_00015844.jpg', '7': 'j/jacuzzi/indoor/ADE_train_00009928.jpg'}, 'start_game': "You are a rescue bot. A person is stuck and needs its medicine to survive. I'm afraid, you don't have a human detector attached, so the other one has to decide, if you can recognize the location out of a list of room. Therefore listen carefully to the instructions..."}
+        # Optional: what the human player inputs.
+        for i, e in enumerate(episode_list):
+            # the number of answers the avatar utters gives us the number of question asked
+            # num_questions = sum(
+            #     [1 for m in e if m["user"]["name"] == "Avatar" and m["event"] == "text_message"])
+
+            extract_map_node_info = lambda message_key: [m["data"]["message"][message_key] for m in e if
+                                                         "data" in m.keys() and "message" in m["data"].keys() and type(
+                                                             m["data"]["message"]) is dict and message_key in m["data"][
+                                                             "message"].keys()]
+            extract_first_element = lambda l: l[0] if len(l) > 0 else None
+            map_nodes = extract_first_element(extract_map_node_info("map_nodes"))
+            player_room_disclosed = bool(extract_first_element(extract_map_node_info("player_room_disclosed")))
+            extract_last_command_data = lambda message_key: [m["command"][message_key] for m in e if
+                                                             "command" in m.keys() and type(
+                                                                 m["command"]) is dict and message_key in m[
+                                                                 "command"].keys()]
+            guessed_room = extract_first_element(extract_last_command_data("guessed_room"))
+            number_of_interaction = extract_first_element(extract_last_command_data("number_of_interaction"))
+            current_candidate_similarity = extract_first_element(
+                extract_last_command_data("current_candidate_similarity"))
+            game_won = sum([1 for m in e if m["user"]["id"] == 1 and m[
+                "event"] == "text_message" and type(m["message"]) is str and m["message"].startswith("Congrats")]) > 0
+            if guessed_room is None:
+                current_candidate_similarity = 0.0
+            score_list.append(
+                {"game_won": game_won, "number_of_interaction": number_of_interaction, "guessed_room": guessed_room,
+                 'player_room_disclosed': bool(player_room_disclosed),
+                 'current_candidate_similarity': current_candidate_similarity})
+
+            # Just sum every messages ending with a question mark issueed by the user...
+            num_questions = sum([1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
+                "event"] == "text_message" and type(m["message"]) is str and m["message"].endswith("?")])
+
+            # user id 1 is alway the game master, we are looping here on the messages of the "real" player
+            # when we tell the avatar to change location, we don't get an answer, this is why the substraction gives the number of orders
+            # this does not include the order "done"
+            # num_orders = sum(
+            #     [1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
+            #         "event"] == "text_message"]) - num_questions
+
+            # Just sum every order of type "go west". Describe orders are not counted.
+            num_orders = sum([1 for m in e if m["user"]["name"] != "Avatar" and m["user"]["id"] != 1 and m[
+                "event"] == "text_message" and type(m["message"]) is str and (
+                                      "east" in m["message"].lower() or "north" in m["message"].lower() or "west" in m[
+                                  "message"].lower() or "south" in m["message"].lower() or "back" in m[
+                                          "message"].lower())])
+
+        return score_list
+
+    else:
+        raise Exception(f"{file_path} is not a correct file path.")
 
 
-if __name__ == "__main__":
-    print("Start")
-    import os
+def merge_log_results_in_directory(dir_path):
+    """
+    Merge all game results in pandas frame.
+    :param dir_path:
+    :return:
+    """
+    _, _, filenames = next(walk(dir_path))
+    all_scores = []
+    for f in filenames:
+        scores = read_game_logs(os.path.join(dir_path, f))
+        all_scores.extend(scores)
+    df = pd.DataFrame(all_scores)
+
+    return df
+
+def test_cosine():
     from avatar_sgg.config.util import get_config
     from avatar_sgg.dataset.util import get_ade20k_split
 
@@ -287,4 +444,27 @@ if __name__ == "__main__":
     query = stacked_vectors[0, 1, :]
     similarity = calculate_normalized_cosine_similarity(first_embeds, query)
     values, ranks = torch.topk(similarity, 1, dim=0)
+    print(values, ranks)
+
+def run_evaluation(evaluation_name, split, similarity_function, threshold_list, recall_function, output_dir):
+    values = []
+    print(f"\n############## Start Evaluation: {evaluation_name} ############## ")
+    for t in threshold_list:
+        print("\n")
+        print(f"Threshold: {t}")
+        val = similarity_function(split, t, recall_function)
+        values.append(val)
+        print("\n")
+    print(f"############## End Evaluation: {evaluation_name} ############## ")
+    df = pd.DataFrame(values)
+    output_path = os.path.join(output_dir, evaluation_name + ".csv")
+    print(f"Saving data to {output_path}")
+    df.to_csv(output_path)
+
+
+if __name__ == "__main__":
+    print("Start")
+    # test_cosine()
+    log_path = "/home/rafi/PycharmProjects/clp-sose21-pm-vision/results/slurk_logs/baseline/"
+    df = merge_log_results_in_directory(log_path)
     print("End")

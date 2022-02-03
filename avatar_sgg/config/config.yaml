@@ -11,6 +11,16 @@ captioning:
   sentence_bert:
     cuda_device: "cuda:0"
     model: "paraphrase-MiniLM-L6-v2"
+
+scene_graph: # config files come from instructions in  https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch/
+  image_dir: "/media/rafi/Samsung_T5/_DATASETS/vg/VG_100K/"
+  capgraphs_file: "/media/rafi/Samsung_T5/_DATASETS/vg/vg_capgraphs_anno.json"
+  visual_genome_dict_file: "/media/rafi/Samsung_T5/_DATASETS/vg/VG-SGG-dicts-with-attri.json"
+  image_data: "/media/rafi/Samsung_T5/_DATASETS/vg/image_data.json"
+  train: "/media/rafi/Samsung_T5/_DATASETS/vg/sgg/train_eval/train_sg_of_causal_sgdet_ctx_only.json"
+  test: "/media/rafi/Samsung_T5/_DATASETS/vg/sgg/test_eval/test_sg_of_causal_sgdet_ctx_only.json"
+  val: "/media/rafi/Samsung_T5/_DATASETS/vg/sgg/val_eval/val_sg_of_causal_sgdet_ctx_only.json"
+
 output_dir: "/home/rafi/PycharmProjects/clp-sose21-pm-vision/results"
 
 game_setup:
@@ -18,13 +28,13 @@ game_setup:
   map:
     size: 4
     ambiguity: 2
-    rooms: 8
+    rooms: 10
   avatar:
     room_list: 100 #in percent, defines the number of rooms it should get from the game master
-    include_player_room: True # Boolean True or False ,defines if the room where the player is stuck should be included or not
+    include_player_room: False # Boolean True or False ,defines if the room where the player is stuck should be included or not
     max_number_of_interaction: 3 # Defines the number of interactions a player is allowed to have
     similarity_threshold: 0.57 # If during the allowed number of interactions, the robot identifies any images over this threshold, it stops the game to give it a try.
-    minimum_similarity_threshold: 0.53  # This is the bare minimum to for the robot to say that it has some clues about the rooms. Otherwise it says it hasn t seen the room.
+    minimum_similarity_threshold: 0.51  # This is the bare minimum to for the robot to say that it has some clues about the rooms. Otherwise it says it hasn t seen the room.
     aggregate_interaction: True # Boolean True or False. Decides whether all player description are merged to one big description
   debug: True # Boolean True or False, output some more messages
 
