@@ -1,6 +1,6 @@
 from avatar_sgg.dataset.util import get_scene_graph_splits, get_scene_graph_loader
 from avatar_sgg.config.util import get_config
-from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity, \
+from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity_against_generated_caption, \
     compute_recall_on_category, compute_recall_johnson_feiefei, add_inferred_captions, merge_human_captions, \
     use_merged_sequence, run_evaluation
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     catr_caption = "vg_150_catr_captions_query"
     merged_human_caption = "vg_150_merged_human_caption_catr_captions_query"
 
-    #add_inferred_captions(current)
+
     evaluation_name = eval_name(human_caption, fei_fei_recall)
     run_evaluation(evaluation_name, current, compute_similarity, threshold_list, compute_recall_johnson_feiefei,
                    output_dir)
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     current_inferred = add_inferred_captions(current)
     evaluation_name = eval_name(catr_caption, fei_fei_recall)
-    run_evaluation(evaluation_name, current_inferred, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei,
+    run_evaluation(evaluation_name, current_inferred, compute_average_similarity_against_generated_caption, threshold_list, compute_recall_johnson_feiefei,
                    output_dir)
 
 

@@ -1,6 +1,6 @@
 from avatar_sgg.dataset.util import get_ade20k_split
 from avatar_sgg.config.util import get_config
-from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity, \
+from avatar_sgg.image_retrieval.evaluation import compute_similarity, compute_average_similarity_against_generated_caption, \
     compute_recall_on_category, compute_recall_johnson_feiefei, add_inferred_captions, merge_human_captions, \
     use_merged_sequence, run_evaluation
 import numpy as np
@@ -39,11 +39,11 @@ if __name__ == "__main__":
 
     current_inferred_captions = add_inferred_captions(current)
     evaluation_name = eval_name(catr_caption, fei_fei_recall)
-    run_evaluation(evaluation_name, current_inferred_captions, compute_average_similarity, threshold_list, compute_recall_johnson_feiefei,
+    run_evaluation(evaluation_name, current_inferred_captions, compute_average_similarity_against_generated_caption, threshold_list, compute_recall_johnson_feiefei,
                    output_dir)
 
     evaluation_name = eval_name(catr_caption, ade20k_category_recall)
-    run_evaluation(evaluation_name, current_inferred_captions, compute_average_similarity, threshold_list, compute_recall_on_category,
+    run_evaluation(evaluation_name, current_inferred_captions, compute_average_similarity_against_generated_caption, threshold_list, compute_recall_on_category,
                    output_dir)
 
     current_merged_human = merge_human_captions(current)

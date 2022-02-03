@@ -196,7 +196,7 @@ def compute_similarity(ade20k_split, threshold=None, recall_funct=compute_recall
     return recall_mean
 
 
-def compute_average_similarity(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
+def compute_average_similarity_against_generated_caption(ade20k_split, threshold=None, recall_funct=compute_recall_johnson_feiefei):
     """
     Pre-requisite. The ade20k_split has been enriched with 'add_inferred_captions()'. The synthetic caption (always
     added at the end of the human captions) are used as query to retrieve the images based on the human captions.
@@ -213,7 +213,7 @@ def compute_average_similarity(ade20k_split, threshold=None, recall_funct=comput
 
     num_captions = stacked_vectors.shape[1]
     index_inferred_caption = num_captions - 1
-    index_range_human_captions = num_captions - 1
+    index_range_human_captions = index_inferred_caption
 
     caption_dim = 1
     recall_list = []
